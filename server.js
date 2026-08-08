@@ -103,7 +103,7 @@ app.post('/api/register', async (req, res) => {
     const welcomeMsg =
         `Здравствуйте, ${name}! 👋
 
-Вы успешно зарегистрировались в живой очереди **Nazirjon ECU**!
+Вы успешно зарегистрировались в живой очереди **Nazirjon Performance**!
 
 🚗 Автомобиль: **${brand}** (${carNum.toUpperCase()})
 🛠 Услуга: [${serviceName}]
