@@ -7,51 +7,62 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Отдаем HTML-файлы прямо из папки проекта
+// Раздача статических HTML-файлов
 app.use(express.static(__dirname));
-
-// ... дальше ваш остальной код server.js ...
 
 // ⚠️ Данные вашего аккаунта Green API (https://green-api.com)
 // Данные подключения Green API
 const GREEN_INSTANCE_ID = '720122704980';
 const GREEN_API_TOKEN = '9feb851977034a5b8f6f863b110881b8fdb04a9df28e40278a';
 
-// Единая база данных очереди в памяти сервера
+
+// Данные очереди
 let queueData = {
     pending: { injector: 0, ecu: 0 },
-    list: { injector: [], ecu: [] }
+    list: { injector: [], ecu: [] },
+    completed: { injector: [], ecu: [] }
 };
 
-// ==================== 1. МАРШРУТЫ ДЛЯ КЛИЕНТАИ ДИСПЛЕЯ ====================
+// Перерасчет позиций
+function recalculatePositions(service) {
+    queueData.list[service].forEach((item, index) => {
+        item.pos = index + 1;
+    });
+}
 
-// Получить текущее состояние очереди (для отображения на сайте и ТВ)
+// 1. Получение всей очереди
 app.get('/api/queue', (req, res) => {
     res.json(queueData);
 });
 
-// Регистрация нового клиента через NFC
+// 2. Регистрация нового клиента
 app.post('/api/register', async (req, res) => {
     const { name, service, brand, carNum, phone } = req.body;
 
-    if (!service || !queueData.list[service]) {
-        return res.status(400).json({ success: false, error: 'Неверно указана услуга' });
+    if (!name || !service || !brand || !carNum || !phone) {
+        return res.status(400).json({ error: 'Заполните все поля' });
     }
 
-    // Расчет порядкового номера в очереди
-    const pos = queueData.list[service].length + 1 + queueData.pending[service];
-    const newClient = { id: Date.now(), pos, name, brand, carNum, phone };
+    const pos = queueData.list[service].length + 1;
+    const newClient = {
+        id: Date.now().toString(),
+        name,
+        brand,
+        carNum,
+        phone,
+        pos
+    };
 
-    // Сохраняем в общую очередь
     queueData.list[service].push(newClient);
 
-    // Фоновая отправка правил в WhatsApp клиенту
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const chatId = `${cleanPhone}@c.us`;
-    const serviceName = service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
+    // Отправка правил в WhatsApp через Green API
+    if (GREEN_INSTANCE && GREEN_TOKEN && GREEN_INSTANCE !== 'YOUR_GREEN_API_INSTANCE') {
+        let cleanPhone = phone.replace(/\D/g, '');
+        if (cleanPhone.startsWith('8')) cleanPhone = '7' + cleanPhone.slice(1);
 
-    const messageText =
-        `Здравствуйте, ${name}!
+        const serviceName = service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
+        const rulesMessage =
+            `Здравствуйте, ${name}!
 
 Вы успешно встали в очередь №${pos} на [${serviceName}] (Авто: ${brand}, Госномер: ${carNum}).
 
@@ -60,80 +71,93 @@ app.post('/api/register', async (req, res) => {
 2. 🚪 *НЕ стучите в двери!* Мастер сам выйдет к вам, когда подойдет ваша очередь.
 
 Сейчас откроется чат с мастером для уточнения деталей. Пожалуйста, ожидайте!`;
-        
 
-    try {
-        const url = `https://api.green-api.com/waInstance${GREEN_INSTANCE_ID}/sendMessage/${GREEN_API_TOKEN}`;
-        await axios.post(url, { chatId, message: rulesText });
-        console.log(`[WhatsApp] Правила успешно отправлены клиенту: ${name} (${cleanPhone})`);
-    } catch (error) {
-        console.error('[WhatsApp Ошибка]:', error.message);
+        try {
+            await axios.post(`https://api.green-api.com/waInstance${GREEN_INSTANCE}/sendMessage/${GREEN_TOKEN}`, {
+                chatId: `${cleanPhone}@c.us`,
+                message: rulesMessage
+            });
+            console.log(`[WhatsApp Rules] Правила отправлены клиенту ${cleanPhone}`);
+        } catch (e) {
+            console.error('[WhatsApp Rules Error]', e.message);
+        }
     }
 
-    res.json({ success: true, pos, client: newClient });
+    res.json({ success: true, pos, queueData });
 });
 
-// ==================== 2. МАРШРУТЫ ДЛЯ АДМИНКИ ====================
-
-// Добавить вчерашнюю машину (+1 в начало)
+// 3. Админ: Добавление вчерашней машины
 app.post('/api/admin/add-yesterday', (req, res) => {
     const { service } = req.body;
     if (queueData.pending[service] !== undefined) {
-        queueData.pending[service]++;
-        // Пересчитываем позиции остальных
-        recalculatePositions(service);
+        queueData.pending[service] += 1;
         res.json({ success: true, queueData });
     } else {
-        res.status(400).json({ success: false });
+        res.status(400).json({ error: 'Неверная услуга' });
     }
 });
 
-// Удалить клиента из очереди
-app.post('/api/admin/remove', (req, res) => {
-    const { service, id } = req.body;
+// 4. Админ: Перевод в ГОТОВЫЕ с ценой и отправкой сообщения клиенту
+app.post('/api/admin/complete', async (req, res) => {
+    const { service, id, price } = req.body;
+
     if (queueData.list[service]) {
-        queueData.list[service] = queueData.list[service].filter(item => item.id !== id);
-        recalculatePositions(service);
-        res.json({ success: true, queueData });
-    } else {
-        res.status(400).json({ success: false });
+        const index = queueData.list[service].findIndex(item => item.id === id || String(item.pos) === String(id));
+
+        if (index !== -1) {
+            const [completedCar] = queueData.list[service].splice(index, 1);
+            completedCar.completedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            completedCar.price = price ? `${price} ₸` : 'Уточняйте у мастера';
+
+            queueData.completed[service].push(completedCar);
+            recalculatePositions(service);
+
+            // Сообщение в WhatsApp клиенту о готовности и сумме к оплате
+            if (completedCar.phone && GREEN_INSTANCE && GREEN_TOKEN && GREEN_INSTANCE !== 'YOUR_GREEN_API_INSTANCE') {
+                let cleanPhone = completedCar.phone.replace(/\D/g, '');
+                if (cleanPhone.startsWith('8')) cleanPhone = '7' + cleanPhone.slice(1);
+
+                const serviceName = service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
+                const priceText = price ? `💰 **К оплате за ремонт:** ${price} ₸\n` : '';
+
+                const readyMessage =
+                    `Здравствуйте, ${completedCar.name}! 👋
+
+✅ *Ваш автомобиль готов!*
+🚗 **${completedCar.brand}** (${completedCar.carNum})
+🛠 Услуга: [${serviceName}]
+${priceText}
+Можете приехать и забрать ваш автомобиль. Ждем вас! 🚘✨`;
+
+                try {
+                    await axios.post(`https://api.green-api.com/waInstance${GREEN_INSTANCE}/sendMessage/${GREEN_TOKEN}`, {
+                        chatId: `${cleanPhone}@c.us`,
+                        message: readyMessage
+                    });
+                    console.log(`[WhatsApp Ready] Уведомление о готовности с ценой отправлено ${cleanPhone}`);
+                } catch (e) {
+                    console.error('[WhatsApp Ready Error]', e.message);
+                }
+            }
+
+            return res.json({ success: true, queueData });
+        }
     }
+
+    res.status(400).json({ success: false, error: 'Машина не найдена' });
 });
 
-// Полный сброс очереди на день
-app.post('/api/admin/clear', (req, res) => {
-    queueData = {
-        pending: { injector: 0, ecu: 0 },
-        list: { injector: [], ecu: [] }
-    };
-    res.json({ success: true, queueData });
+// 5. Админ: Удаление готовой машины
+app.post('/api/admin/remove-completed', (req, res) => {
+    const { service, carNum } = req.body;
+    if (queueData.completed[service]) {
+        queueData.completed[service] = queueData.completed[service].filter(item => item.carNum !== carNum);
+        return res.json({ success: true, queueData });
+    }
+    res.status(400).json({ success: false, error: 'Ошибка удаления' });
 });
 
-// Функция пересчета номеров позиций после удалений или добавлений
-function recalculatePositions(service) {
-    const baseOffset = queueData.pending[service];
-    queueData.list[service].forEach((item, index) => {
-        item.pos = index + 1 + baseOffset;
-    });
-}
-
-// Запуск сервера
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`===========================================`);
-    console.log(`🚀 Сервер автоотправки и очереди запущен на порту ${PORT}`);
-    console.log(`===========================================`);
-});
-// Добавить вчерашнюю машину (+1 в начало)
-app.post('/api/admin/add-yesterday', (req, res) => {
-    const { service } = req.body;
-    if (queueData.pending[service] !== undefined) {
-        queueData.pending[service]++;
-        // Пересчитываем позиции клиентов
-        recalculatePositions(service);
-        console.log(`[Админ] Добавлена вчерашняя машина в ${service}`);
-        res.json({ success: true, queueData });
-    } else {
-        res.status(400).json({ success: false, error: 'Неверная услуга' });
-    }
+    console.log(`Сервер запущен на порту ${PORT}`);
 });
