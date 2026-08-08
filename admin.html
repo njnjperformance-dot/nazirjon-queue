@@ -3,31 +3,181 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Админка - Nazirjon ECU</title>
+  <title>Админка - Nazirjon ECU Performance</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-    body { background-color: #0d0d0d; color: #fff; padding: 15px; max-width: 700px; margin: 0 auto; }
-    .header { text-align: center; color: #e60000; margin-bottom: 20px; text-transform: uppercase; }
-    .section-title { font-size: 1.1rem; color: #ff9900; margin: 20px 0 10px; border-bottom: 1px solid #333; padding-bottom: 5px; }
-    .card { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-    .card-completed { border-color: #00e676; background: #002411; }
-    .btn { padding: 8px 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-    .btn-green { background: #00e676; color: #000; }
-    .btn-red { background: #ff3333; color: #fff; }
-    .btn-add { background: #ff9900; color: #000; margin-bottom: 10px; width: 100%; padding: 12px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body {
+      background-color: #080808;
+      color: #f0f0f0;
+      padding: 15px;
+      max-width: 750px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    /* Шапка с эмблемой */
+    .brand-header {
+      background: linear-gradient(135deg, #1f0505 0%, #0a0a0a 100%);
+      border: 1px solid #800000;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 20px rgba(230, 0, 0, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+    .brand-header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(230,0,0,0.15) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .brand-logo {
+      font-size: 2.2rem;
+      margin-bottom: 5px;
+      filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.6));
+    }
+    .brand-title {
+      color: #ff3333;
+      font-size: 1.5rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 2px 10px rgba(230, 0, 0, 0.5);
+    }
+    .brand-subtitle {
+      color: #888;
+      font-size: 0.85rem;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Кнопки вчерашних машин */
+    .btn-add {
+      background: linear-gradient(135deg, #cc0000 0%, #800000 100%);
+      color: #fff;
+      margin-bottom: 12px;
+      width: 100%;
+      padding: 14px;
+      font-weight: bold;
+      font-size: 0.95rem;
+      border-radius: 8px;
+      border: 1px solid #ff4d4d;
+      cursor: pointer;
+      box-shadow: 0 3px 10px rgba(128, 0, 0, 0.4);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-add:active {
+      transform: scale(0.98);
+      background: linear-gradient(135deg, #990000 0%, #660000 100%);
+    }
+
+    /* Заголовки секций */
+    .section-title {
+      font-size: 1.1rem;
+      color: #ff4d4d;
+      margin: 25px 0 12px;
+      border-bottom: 2px solid #800000;
+      padding-bottom: 6px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Карточки очереди */
+    .card {
+      background: #121212;
+      border: 1px solid #2a2a2a;
+      border-left: 4px solid #cc0000;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    .card-completed {
+      border-color: #00e676;
+      border-left: 4px solid #00e676;
+      background: #031a0e;
+    }
+
+    .car-info-title {
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .car-num-badge {
+      background: #2a0000;
+      color: #ff6666;
+      border: 1px solid #800000;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    .car-info-sub {
+      font-size: 0.85rem;
+      color: #aaa;
+    }
+
+    /* Кнопки действий */
+    .btn {
+      padding: 9px 14px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    .btn:active { transform: scale(0.95); }
+    .btn-green {
+      background: #00e676;
+      color: #000;
+      box-shadow: 0 0 10px rgba(0,230,118,0.3);
+    }
+    .btn-red {
+      background: #ff3333;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
 
-<h2 class="header">Панель Управления</h2>
+<div class="brand-header">
+  <div class="brand-logo">⚡💻⚙️</div>
+  <div class="brand-title">NAZIRJON ECU PERFORMANCE</div>
+  <div class="brand-subtitle">Панель Управления Очередью</div>
+</div>
 
-<button class="btn-add" onclick="addYesterday('injector')">➕ Вчерашняя машина (INJECTOR PRO)</button>
-<button class="btn-add" onclick="addYesterday('ecu')">➕ Вчерашняя машина (ECU PERFORMANCE)</button>
+<button class="btn-add" onclick="addYesterday('injector')">
+  <span>➕</span> Вчерашняя машина (INJECTOR PRO)
+</button>
+<button class="btn-add" onclick="addYesterday('ecu')">
+  <span>➕</span> Вчерашняя машина (ECU PERFORMANCE)
+</button>
 
-<div class="section-title">🔴 АКТИВНАЯ ОЧЕРЕДЬ</div>
+<div class="section-title">🔴 АКТИВНАЯ ОЧЕРЕДЬ В БОКСАХ</div>
 <div id="activeQueue"></div>
 
-<div class="section-title" style="color: #00e676;">✅ ГОТОВЫЕ АВТО (ОЖИДАЮТ ВЫДАЧИ)</div>
+<div class="section-title" style="color: #00e676; border-color: #00a854;">
+  ✅ ГОТОВЫЕ АВТО (ОЖИДАЮТ ВЫДАЧИ)
+</div>
 <div id="completedQueue"></div>
 
 <script>
@@ -39,7 +189,7 @@
       const data = await res.json();
       renderAdmin(data);
     } catch (e) {
-      console.error('Ошибка загрузки:', e);
+      console.error('Ошибка загрузки данных:', e);
     }
   }
 
@@ -58,11 +208,15 @@
       if (data.list && data.list[s]) {
         data.list[s].forEach(item => {
           hasActive = true;
+          const serviceTag = s === 'injector' ? '💉 INJECTOR' : '💻 ECU';
           activeContainer.innerHTML += `
                         <div class="card">
                             <div>
-                                <div><strong>[${s.toUpperCase()}] №${item.pos}: ${item.brand}</strong> (${item.carNum})</div>
-                                <div style="font-size:0.85rem; color:#aaa;">Имя: ${item.name} | Тел: ${item.phone}</div>
+                                <div class="car-info-title">
+                                    [${serviceTag}] №${item.pos}: ${item.brand}
+                                    <span class="car-num-badge">${item.carNum}</span>
+                                </div>
+                                <div class="car-info-sub">Клиент: <strong>${item.name}</strong> | Тел: ${item.phone}</div>
                             </div>
                             <button class="btn btn-green" onclick="markComplete('${s}', '${item.id || item.pos}')">✅ В готовые</button>
                         </div>`;
@@ -71,7 +225,7 @@
     });
 
     if (!hasActive) {
-      activeContainer.innerHTML = '<p style="color:#666; padding:10px;">Активных машин нет</p>';
+      activeContainer.innerHTML = '<p style="color:#666; padding:10px; font-size:0.9rem;">В очереди пока нет активных машин</p>';
     }
 
     // 2. Готовые машины
@@ -79,12 +233,19 @@
       if (data.completed && data.completed[s]) {
         data.completed[s].forEach(item => {
           hasCompleted = true;
+          const serviceTag = s === 'injector' ? 'INJECTOR' : 'ECU';
           completedContainer.innerHTML += `
                         <div class="card card-completed">
                             <div>
-                                <div style="color:#00e676;"><strong>🏁 [${s.toUpperCase()}] ${item.brand}</strong> (${item.carNum})</div>
-                                <div style="font-size:0.85rem; color:#fff;">Сумма: <strong>${item.price}</strong></div>
-                                <div style="font-size:0.75rem; color:#aaa;">Завершено: ${item.completedTime || 'Сегодня'}</div>
+                                <div class="car-info-title" style="color:#00e676;">
+                                    🏁 [${serviceTag}] ${item.brand} (${item.carNum})
+                                </div>
+                                <div style="font-size:0.9rem; color:#fff; margin-top:2px;">
+                                    К оплате: <strong style="color:#00e676;">${item.price}</strong>
+                                </div>
+                                <div style="font-size:0.75rem; color:#888; margin-top:2px;">
+                                    Завершено: ${item.completedTime || 'Сегодня'}
+                                </div>
                             </div>
                             <button class="btn btn-red" onclick="removeCompleted('${s}', '${item.carNum}')">❌ Удалить</button>
                         </div>`;
@@ -93,13 +254,13 @@
     });
 
     if (!hasCompleted) {
-      completedContainer.innerHTML = '<p style="color:#666; padding:10px;">Готовых машин нет</p>';
+      completedContainer.innerHTML = '<p style="color:#666; padding:10px; font-size:0.9rem;">Готовых к выдаче машин нет</p>';
     }
   }
 
   async function markComplete(service, id) {
     const price = prompt('Введите сумму к оплате за ремонт (в тенге):', '25000');
-    if (price === null) return; // Нажали "Отмена"
+    if (price === null) return;
 
     await fetch(`${SERVER_URL}/api/admin/complete`, {
       method: 'POST',
@@ -111,7 +272,7 @@
   }
 
   async function removeCompleted(service, carNum) {
-    if (!confirm('Удалить авто из готовых?')) return;
+    if (!confirm('Удалить авто из списка готовых?')) return;
 
     await fetch(`${SERVER_URL}/api/admin/remove-completed`, {
       method: 'POST',
