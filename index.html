@@ -148,9 +148,59 @@
 </div>
 
 <script>
-  const BLACKLIST = [];
+  const SERVER_URL = 'https://nazirjon-queue.onrender.com';
+  const BLACKLIST = ['matiz', 'daewoo matiz', 'chery', 'lifan', 'byd'];
   const WA_PHONES = { injector: '77067122121', ecu: '77066061525' };
 
+  // Функция загрузки и отрисовки очереди для Табло
+  async function loadPublicQueue() {
+    try {
+      const res = await fetch(`${SERVER_URL}/api/queue`);
+      const data = await res.json();
+      renderPublicQueue(data);
+    } catch (e) {
+      console.error('Ошибка загрузки очереди:', e);
+    }
+  }
+
+  function renderPublicQueue(data) {
+    ['injector', 'ecu'].forEach(s => {
+      const container = document.getElementById(`queue${s === 'injector' ? 'Injector' : 'ECU'}`);
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      // Отображаем вчерашние машины
+      for (let i = 1; i <= data.pending[s]; i++) {
+        container.innerHTML += `
+                    <div class="queue-item yesterday" style="background:#1a0000; border:1px solid #ff4d4d; margin-top:10px; padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-weight:bold; color:#ff4d4d;">⚠️ Машина с прошлого дня</div>
+                            <div style="font-size:0.85rem; color:#aaa;">Приоритетный прием</div>
+                        </div>
+                        <span style="font-size:1.3rem; font-weight:bold; color:#ff4d4d; border:1px solid #ff4d4d; padding:4px 10px; border-radius:6px;">№${i}</span>
+                    </div>`;
+      }
+
+      // Отображаем зарегистрированных клиентов
+      data.list[s].forEach(item => {
+        container.innerHTML += `
+                    <div class="queue-item" style="background:#141414; border:1px solid #262626; margin-top:10px; padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-weight:bold; color:#fff;">${item.brand} <span style="color:#e60000;">(${item.carNum})</span></div>
+                            <div style="font-size:0.85rem; color:#aaa;">Клиент: ${item.name}</div>
+                        </div>
+                        <span style="font-size:1.3rem; font-weight:bold; color:#e60000; border:1px solid #e60000; padding:4px 10px; border-radius:6px;">№${item.pos}</span>
+                    </div>`;
+      });
+    });
+  }
+
+  // Автообновление табло каждые 3 секунды
+  setInterval(loadPublicQueue, 3000);
+  loadPublicQueue();
+
+  // Обработка формы записи
   document.getElementById('bookingForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
@@ -164,15 +214,14 @@
     const carNum = document.getElementById('carNum').value.trim();
     const phone = document.getElementById('phone').value.trim();
 
-    if (BLACKLIST.some(b => brand.toLowerCase().includes(b))) {
-      err.innerText = `К сожалению, марку "${brand}" мы не обслуживаем.`;
+    if (service === 'injector' && BLACKLIST.some(b => brand.toLowerCase().includes(b))) {
+      err.innerText = `К сожалению, по направлению Инжектор марку "${brand}" мы не обслуживаем.`;
       err.style.display = 'block';
       return;
     }
 
-    // Отправка на сервер Node.js
     try {
-      await fetch('https://nazirjon-queue.onrender.com/api/register', {
+      await fetch(`${SERVER_URL}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, service, brand, carNum, phone })
@@ -182,18 +231,11 @@
     succ.innerText = `✅ Правила отправлены вам в WhatsApp! Переходим в чат с мастером...`;
     succ.style.display = 'block';
 
-    // Разные вопросы в зависимости от направления:
-    let questionText = '';
-    let serviceName = '';
+    let questionText = service === 'injector'
+            ? 'Подскажите, возьмете ли эту комплектацию/мотор в работу?'
+            : 'Подскажите, сможете ли диагностировать и устранить эту проблему с ЭБУ / электрикой?';
 
-    if (service === 'injector') {
-      serviceName = 'INJECTOR PRO';
-      questionText = 'Подскажите, возьмете ли эту комплектацию/мотор в работу?';
-    } else {
-      serviceName = 'ECU PERFORMANCE';
-      questionText = 'Подскажите, сможете ли диагностировать и устранить эту проблему с ЭБУ / электрикой?';
-    }
-
+    let serviceName = service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
     const waNumber = WA_PHONES[service];
     const messageText = encodeURIComponent(
             `Здравствуйте! Я записался через NFC на [${serviceName}].\n` +
@@ -206,6 +248,7 @@
     }, 1200);
 
     this.reset();
+    loadPublicQueue();
   });
 </script>
 </body>
