@@ -172,7 +172,7 @@
 
     // Отправка на сервер Node.js
     try {
-      await fetch('http://localhost:3000/api/register', {
+      await fetch('https://nazirjon-queue.onrender.com/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, service, brand, carNum, phone })
