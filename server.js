@@ -2,6 +2,16 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
+const priceText = price ? `💰 **Стоимость ремонта:** ${price} ₸\n` : '';
+
+const readyMessage =
+    `Здравствуйте, ${completedCar.name}! 👋
+
+✅ *Ваш автомобиль готов к выдаче!*
+🚗 **${completedCar.brand}** (${completedCar.carNum})
+🛠 Услуга: [${serviceName}]
+${priceText}
+Вы можете приехать и забрать ваш автомобиль. Ждем вас! 🚘✨`;
 
 const app = express();
 app.use(cors());
