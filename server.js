@@ -1,114 +1,97 @@
 const express = require('express');
-const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
-const priceText = price ? `💰 **Стоимость ремонта:** ${price} ₸\n` : '';
-
-const readyMessage =
-    `Здравствуйте, ${completedCar.name}! 👋
-
-✅ *Ваш автомобиль готов к выдаче!*
-🚗 **${completedCar.brand}** (${completedCar.carNum})
-🛠 Услуга: [${serviceName}]
-${priceText}
-Вы можете приехать и забрать ваш автомобиль. Ждем вас! 🚘✨`;
 
 const app = express();
+const PORT = process.env.PORT || 3000;
+
 app.use(cors());
 app.use(express.json());
-
-// Раздача статических HTML-файлов
 app.use(express.static(__dirname));
 
-// ⚠️ Данные вашего аккаунта Green API (https://green-api.com)
-// Данные подключения Green API
-const GREEN_INSTANCE_ID = '720122704980';
-const GREEN_API_TOKEN = '9feb851977034a5b8f6f863b110881b8fdb04a9df28e40278a';
-
-
-// Данные очереди
+// Хранилище очереди (хранится непрерывно)
 let queueData = {
     pending: { injector: 0, ecu: 0 },
     list: { injector: [], ecu: [] },
     completed: { injector: [], ecu: [] }
 };
 
-// Перерасчет позиций
+// Перерасчет позиций в очереди
 function recalculatePositions(service) {
+    const offset = queueData.pending[service] || 0;
     queueData.list[service].forEach((item, index) => {
-        item.pos = index + 1;
+        item.pos = offset + index + 1;
     });
 }
 
-// 1. Получение всей очереди
+// 1. Получить данные очереди
 app.get('/api/queue', (req, res) => {
     res.json(queueData);
 });
 
-// 2. Регистрация нового клиента
-app.post('/api/register', async (req, res) => {
+// 2. Регистрация нового клиента (он встаёт в конец существующей цепи)
+app.post('/api/register', (req, res) => {
     const { name, service, brand, carNum, phone } = req.body;
 
     if (!name || !service || !brand || !carNum || !phone) {
         return res.status(400).json({ error: 'Заполните все поля' });
     }
 
-    const pos = queueData.list[service].length + 1;
+    const offset = queueData.pending[service] || 0;
+    const pos = offset + queueData.list[service].length + 1;
+
     const newClient = {
         id: Date.now().toString(),
         name,
         brand,
         carNum,
         phone,
-        pos
+        pos,
+        dateAdded: new Date().toLocaleDateString('ru-RU') // Запоминаем дату записи
     };
 
     queueData.list[service].push(newClient);
-
-    // Отправка правил в WhatsApp через Green API
-    if (GREEN_INSTANCE && GREEN_TOKEN && GREEN_INSTANCE !== 'YOUR_GREEN_API_INSTANCE') {
-        let cleanPhone = phone.replace(/\D/g, '');
-        if (cleanPhone.startsWith('8')) cleanPhone = '7' + cleanPhone.slice(1);
-
-        const serviceName = service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
-        const rulesMessage =
-            `Здравствуйте, ${name}!
-
-Вы успешно встали в очередь №${pos} на [${serviceName}] (Авто: ${brand}, Госномер: ${carNum}).
-
-⚠️ *ПРАВИЛА И ОГРАНИЧЕНИЯ:*
-1. 🚫 *НЕ паркуйте машину у ворот и дверей соседей!*
-2. 🚪 *НЕ стучите в двери!* Мастер сам выйдет к вам, когда подойдет ваша очередь.
-
-Сейчас откроется чат с мастером для уточнения деталей. Пожалуйста, ожидайте!`;
-
-        try {
-            await axios.post(`https://api.green-api.com/waInstance${GREEN_INSTANCE}/sendMessage/${GREEN_TOKEN}`, {
-                chatId: `${cleanPhone}@c.us`,
-                message: rulesMessage
-            });
-            console.log(`[WhatsApp Rules] Правила отправлены клиенту ${cleanPhone}`);
-        } catch (e) {
-            console.error('[WhatsApp Rules Error]', e.message);
-        }
-    }
-
     res.json({ success: true, pos, queueData });
 });
 
-// 3. Админ: Добавление вчерашней машины
+// 3. Добавление вчерашней / приоритетной машины вручную
 app.post('/api/admin/add-yesterday', (req, res) => {
     const { service } = req.body;
     if (queueData.pending[service] !== undefined) {
         queueData.pending[service] += 1;
+        recalculatePositions(service);
         res.json({ success: true, queueData });
     } else {
         res.status(400).json({ error: 'Неверная услуга' });
     }
 });
 
-// 4. Админ: Перевод в ГОТОВЫЕ с ценой и отправкой сообщения клиенту
-app.post('/api/admin/complete', async (req, res) => {
+// 4. Перенос ВЧЕРАШНЕЙ/ПРИОРИТЕТНОЙ машины в ГОТОВЫЕ
+app.post('/api/admin/complete-yesterday', (req, res) => {
+    const { service, price } = req.body;
+
+    if (queueData.pending[service] > 0) {
+        queueData.pending[service] -= 1;
+        recalculatePositions(service);
+
+        const formattedPrice = price ? `${price} ₸` : 'Уточняйте у мастера';
+        const completedCar = {
+            id: 'yesterday_' + Date.now(),
+            brand: 'Приоритетный ремонт (Долгоиграющий)',
+            carNum: 'ПРИОРИТЕТ',
+            price: formattedPrice,
+            completedTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        queueData.completed[service].push(completedCar);
+        return res.json({ success: true, queueData });
+    }
+
+    res.status(400).json({ error: 'Нет приоритетных машин' });
+});
+
+// 5. Перенос ОБЫЧНОЙ машины в ГОТОВЫЕ (только когда мастер закончил!)
+app.post('/api/admin/complete', (req, res) => {
     const { service, id, price } = req.body;
 
     if (queueData.list[service]) {
@@ -122,52 +105,23 @@ app.post('/api/admin/complete', async (req, res) => {
             queueData.completed[service].push(completedCar);
             recalculatePositions(service);
 
-            // Сообщение в WhatsApp клиенту о готовности и сумме к оплате
-            if (completedCar.phone && GREEN_INSTANCE && GREEN_TOKEN && GREEN_INSTANCE !== 'YOUR_GREEN_API_INSTANCE') {
-                let cleanPhone = completedCar.phone.replace(/\D/g, '');
-                if (cleanPhone.startsWith('8')) cleanPhone = '7' + cleanPhone.slice(1);
-
-                const serviceName = service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
-                const priceText = price ? `💰 **К оплате за ремонт:** ${price} ₸\n` : '';
-
-                const readyMessage =
-                    `Здравствуйте, ${completedCar.name}! 👋
-
-✅ *Ваш автомобиль готов!*
-🚗 **${completedCar.brand}** (${completedCar.carNum})
-🛠 Услуга: [${serviceName}]
-${priceText}
-Можете приехать и забрать ваш автомобиль. Ждем вас! 🚘✨`;
-
-                try {
-                    await axios.post(`https://api.green-api.com/waInstance${GREEN_INSTANCE}/sendMessage/${GREEN_TOKEN}`, {
-                        chatId: `${cleanPhone}@c.us`,
-                        message: readyMessage
-                    });
-                    console.log(`[WhatsApp Ready] Уведомление о готовности с ценой отправлено ${cleanPhone}`);
-                } catch (e) {
-                    console.error('[WhatsApp Ready Error]', e.message);
-                }
-            }
-
             return res.json({ success: true, queueData });
         }
     }
 
-    res.status(400).json({ success: false, error: 'Машина не найдена' });
+    res.status(400).json({ error: 'Машина не найдена' });
 });
 
-// 5. Админ: Удаление готовой машины
+// 6. Удаление из списка готовых (после выдачи клиенту)
 app.post('/api/admin/remove-completed', (req, res) => {
     const { service, carNum } = req.body;
     if (queueData.completed[service]) {
         queueData.completed[service] = queueData.completed[service].filter(item => item.carNum !== carNum);
         return res.json({ success: true, queueData });
     }
-    res.status(400).json({ success: false, error: 'Ошибка удаления' });
+    res.status(400).json({ error: 'Ошибка удаления' });
 });
 
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
+    console.log(`🚀 Сервер запущен на порту ${PORT}`);
 });

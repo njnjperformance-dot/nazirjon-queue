@@ -52,10 +52,8 @@
       align-items: center;
       gap: 10px;
     }
-    .card-completed {
-      background: #002411;
-      border-color: #00e676;
-    }
+    .card-yesterday { background: #2a0000; border-color: #ff4d4d; }
+    .card-completed { background: #002411; border-color: #00e676; }
 
     .action-btn {
       padding: 8px 12px;
@@ -68,8 +66,6 @@
     }
     .btn-complete { background: #00e676; color: #000; }
     .btn-delete { background: #ff3333; color: #fff; }
-
-    .counter { color: #aaa; font-size: 0.9rem; text-align: center; margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -79,15 +75,15 @@
 
   <div class="board-column">
     <div class="board-title">💉 INJECTOR PRO</div>
-    <button class="btn-add" onclick="addYesterday('injector')">➕ Добавить вчерашнюю машину</button>
-    <div class="counter">Вчерашних машин на сегодня: <strong id="pendingInjector" style="color:#e60000;">0</strong></div>
+    <button class="btn-add" onclick="addYesterday('injector')">➕ Добавить долгий/вчерашний ремонт</button>
+    <div id="pendingInjectorBox"></div>
     <div id="listInjector"></div>
   </div>
 
   <div class="board-column">
     <div class="board-title">💻 ECU PERFORMANCE</div>
-    <button class="btn-add" onclick="addYesterday('ecu')">➕ Добавить вчерашнюю машину</button>
-    <div class="counter">Вчерашних машин на сегодня: <strong id="pendingECU" style="color:#e60000;">0</strong></div>
+    <button class="btn-add" onclick="addYesterday('ecu')">➕ Добавить долгий/вчерашний ремонт</button>
+    <div id="pendingECUBox"></div>
     <div id="listECU"></div>
   </div>
 
@@ -105,14 +101,31 @@
       const res = await fetch(`${SERVER_URL}/api/queue`);
       const data = await res.json();
 
-      document.getElementById('pendingInjector').innerText = data.pending.injector;
-      document.getElementById('pendingECU').innerText = data.pending.ecu;
+      renderPendingBox('injector', data.pending.injector);
+      renderPendingBox('ecu', data.pending.ecu);
 
       renderList('Injector', data.list.injector, 'injector');
       renderList('ECU', data.list.ecu, 'ecu');
       renderCompleted(data.completed);
     } catch (e) {
       console.error('Ошибка:', e);
+    }
+  }
+
+  function renderPendingBox(service, count) {
+    const container = document.getElementById(service === 'injector' ? 'pendingInjectorBox' : 'pendingECUBox');
+    if (count > 0) {
+      container.innerHTML = `
+        <div class="card card-yesterday">
+          <div>
+            <div style="font-weight:bold; color:#ff4d4d;">⚠️ Длительные/Вчерашние ремонты: ${count}</div>
+            <div style="font-size:0.85rem; color:#aaa;">В приоритетном списке</div>
+          </div>
+          <button class="action-btn btn-complete" onclick="markYesterdayComplete('${service}')">🚗 Готово к выдаче</button>
+        </div>
+      `;
+    } else {
+      container.innerHTML = '';
     }
   }
 
@@ -129,8 +142,9 @@
       container.innerHTML += `
         <div class="card">
             <div>
-                <div style="font-weight:bold; color:#fff;">${item.brand} <span style="color:#e60000;">(${item.carNum})</span></div>
+                <div style="font-weight:bold; color:#fff;">№${item.pos} - ${item.brand} <span style="color:#e60000;">(${item.carNum})</span></div>
                 <div style="font-size:0.85rem; color:#aaa;">Имя: ${item.name} | Тел: ${item.phone}</div>
+                <div style="font-size:0.75rem; color:#666;">Запись от: ${item.dateAdded || 'Сегодня'}</div>
             </div>
             <button class="action-btn btn-complete" onclick="markComplete('${service}', '${item.id || item.pos}')">🚗 Готово к выдаче</button>
         </div>
@@ -177,6 +191,18 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ service, id, price })
+    });
+    loadAdminData();
+  }
+
+  async function markYesterdayComplete(service) {
+    const price = prompt('Введите стоимость ремонта длительной машины (в тенге):', '25000');
+    if (price === null) return;
+
+    await fetch(`${SERVER_URL}/api/admin/complete-yesterday`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service, price })
     });
     loadAdminData();
   }
