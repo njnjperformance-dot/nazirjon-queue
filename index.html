@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NAZIRJON — Injector Pro & ECU Performance</title>
+  <style>
+    :root {
+      --bg-main: #0a0a0a;
+      --bg-card: #141414;
+      --bg-input: #1f1f1f;
+      --accent-red: #e60000;
+      --accent-green: #25d366;
+      --text-white: #ffffff;
+      --text-gray: #a0a0a0;
+      --border-color: #262626;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text-white); padding: 15px; min-height: 100vh; }
+
+    header {
+      text-align: center;
+      padding: 20px 10px;
+      border-bottom: 2px solid var(--accent-red);
+      margin-bottom: 20px;
+      background: linear-gradient(180deg, #1f0505 0%, var(--bg-main) 100%);
+    }
+
+    .brand-title { font-size: 2.2rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
+    .brand-title span { color: var(--accent-red); }
+    .brand-subtitle { color: var(--text-gray); font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+
+    .info-bar { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 15px; font-size: 0.8rem; }
+    .info-bar span { background: #1a1a1a; border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 4px; }
+
+    .disclaimer-card {
+      background: rgba(230, 0, 0, 0.1);
+      border: 1px solid var(--accent-red);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .disclaimer-card h3 { color: var(--accent-red); margin-bottom: 6px; text-transform: uppercase; font-size: 1rem; }
+
+    .form-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-top: 4px solid var(--accent-red);
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 500px;
+      margin: 0 auto 30px auto;
+    }
+
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 6px; font-size: 0.8rem; color: var(--text-gray); text-transform: uppercase; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color);
+      background: var(--bg-input); color: var(--text-white); font-size: 1rem; outline: none;
+    }
+
+    .btn-submit {
+      width: 100%; padding: 14px; background: var(--accent-red); color: var(--text-white);
+      border: none; border-radius: 6px; font-size: 1rem; font-weight: 800; text-transform: uppercase; cursor: pointer;
+    }
+
+    .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 15px; max-width: 1000px; margin: 0 auto; }
+    .column-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; }
+    .column-title { font-size: 1.1rem; font-weight: 800; padding-bottom: 8px; margin-bottom: 12px; border-bottom: 2px solid var(--accent-red); text-align: center; text-transform: uppercase; }
+
+    .queue-item {
+      background: #0f0f0f; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--text-white);
+    }
+    .queue-item.yesterday { border-left-color: var(--accent-red); }
+    .pos-badge { font-size: 1.2rem; font-weight: 800; background: #1c1c1c; padding: 5px 10px; border-radius: 6px; color: var(--accent-red); border: 1px solid var(--accent-red); }
+
+    .msg-box { padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 0.85rem; display: none; }
+    .msg-error { background: rgba(230, 0, 0, 0.2); border: 1px solid var(--accent-red); color: #ff8080; }
+    .msg-success { background: rgba(37, 211, 102, 0.15); border: 1px solid var(--accent-green); color: #25d366; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand-title">NAZIR<span>JON</span></div>
+  <div class="brand-subtitle">INJECTOR PRO & ECU PERFORMANCE</div>
+  <div class="info-bar">
+    <span>⏰ 09:00 - 18:00</span>
+    <span>🍱 Обед: 13:00 - 14:00</span>
+    <span>🚫 Вс: Выходной</span>
+    <span>💉 +7 706 712 21 21</span>
+    <span>💻 +7 706 606 15 25</span>
+  </div>
+</header>
+
+<div class="disclaimer-card" style="max-width: 500px; margin: 0 auto 20px auto;">
+  <h3>⚠️ ВАЖНОЕ ПРЕДУПРЕЖДЕНИЕ:</h3>
+  <p>Мы обслуживаем не все модификации! Например, на <strong>Mercedes-Benz W124</strong> дозаторы делаем, а <i>плиточные моторы не делаем</i>.</p>
+</div>
+
+<div class="form-card">
+  <h2 style="text-align:center; margin-bottom:15px; text-transform:uppercase;">Запись в очередь</h2>
+  <div id="msgError" class="msg-box msg-error"></div>
+  <div id="msgSuccess" class="msg-box msg-success"></div>
+
+  <form id="bookingForm">
+    <div class="form-group">
+      <label>Ваше Имя:</label>
+      <input type="text" id="clientName" placeholder="Введите имя" required>
+    </div>
+    <div class="form-group">
+      <label>Направление ремонта:</label>
+      <select id="service" required>
+        <option value="injector">💉 INJECTOR PRO (+7 706 712 21 21)</option>
+        <option value="ecu">💻 ECU PERFORMANCE (+7 706 606 15 25)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Марка, модель и мотор:</label>
+      <input type="text" id="brand" placeholder="Например: Mercedes W124 2.0 дозатор" required>
+    </div>
+    <div class="form-group">
+      <label>Гос. номер авто:</label>
+      <input type="text" id="carNum" placeholder="Например: 777 AAA 01" required>
+    </div>
+    <div class="form-group">
+      <label>Номер WhatsApp (+7...):</label>
+      <input type="tel" id="phone" placeholder="+7 706 000 00 00" required>
+    </div>
+    <button type="submit" class="btn-submit">Получить правила и перейти в WhatsApp</button>
+  </form>
+</div>
+
+<h2 style="text-align:center; margin-bottom:15px; text-transform:uppercase;">Табло Очереди</h2>
+<div class="grid-container">
+  <div class="column-box">
+    <div class="column-title">💉 INJECTOR PRO</div>
+    <div id="displayInjector"></div>
+  </div>
+  <div class="column-box">
+    <div class="column-title">💻 ECU PERFORMANCE</div>
+    <div id="displayECU"></div>
+  </div>
+</div>
+
+<script>
+  const BLACKLIST = [];
+  const WA_PHONES = { injector: '77067122121', ecu: '77066061525' };
+
+  document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const err = document.getElementById('msgError');
+    const succ = document.getElementById('msgSuccess');
+    err.style.display = 'none'; succ.style.display = 'none';
+
+    const name = document.getElementById('clientName').value.trim();
+    const service = document.getElementById('service').value;
+    const brand = document.getElementById('brand').value.trim();
+    const carNum = document.getElementById('carNum').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+
+    if (BLACKLIST.some(b => brand.toLowerCase().includes(b))) {
+      err.innerText = `К сожалению, марку "${brand}" мы не обслуживаем.`;
+      err.style.display = 'block';
+      return;
+    }
+
+    // Отправка на сервер Node.js
+    try {
+      await fetch('http://localhost:3000/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, service, brand, carNum, phone })
+      });
+    } catch (e) {}
+
+    succ.innerText = `✅ Правила отправлены вам в WhatsApp! Переходим в чат с мастером...`;
+    succ.style.display = 'block';
+
+    // Разные вопросы в зависимости от направления:
+    let questionText = '';
+    let serviceName = '';
+
+    if (service === 'injector') {
+      serviceName = 'INJECTOR PRO';
+      questionText = 'Подскажите, возьмете ли эту комплектацию/мотор в работу?';
+    } else {
+      serviceName = 'ECU PERFORMANCE';
+      questionText = 'Подскажите, сможете ли диагностировать и устранить эту проблему с ЭБУ / электрикой?';
+    }
+
+    const waNumber = WA_PHONES[service];
+    const messageText = encodeURIComponent(
+            `Здравствуйте! Я записался через NFC на [${serviceName}].\n` +
+            `Имя: ${name}\n🚗 Авто: ${brand}\n🔢 Госномер: ${carNum}\n\n` +
+            `${questionText}`
+    );
+
+    setTimeout(() => {
+      window.location.href = `https://wa.me/${waNumber}?text=${messageText}`;
+    }, 1200);
+
+    this.reset();
+  });
+</script>
+</body>
+</html>
