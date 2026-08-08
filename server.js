@@ -10,7 +10,7 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 // ==========================================
-// НАСТРОЙКИ GREEN API (ВАШИ КЛЮЧИ)
+// НАСТРОЙКИ GREEN API
 // ==========================================
 const GREEN_ID_INSTANCE = '720122704980';
 const GREEN_API_TOKEN = '9feb851977034a5b8f6f863b110881b8fdb04a9df28e40278a';
@@ -34,7 +34,7 @@ function formatPhoneNumber(phone) {
     return `${cleaned}@c.us`;
 }
 
-// Отправка сообщений через Green API
+// Отправка сообщений через Green API с использованием ВАШЕГО хоста (7201.api.green-api.com)
 async function sendWhatsAppNotification(phone, message) {
     if (!phone) {
         console.log('[Green API] Ошибка: телефон не указан');
@@ -42,7 +42,8 @@ async function sendWhatsAppNotification(phone, message) {
     }
 
     const chatId = formatPhoneNumber(phone);
-    const url = `https://api.green-api.com/waInstance${GREEN_ID_INSTANCE}/sendMessage/${GREEN_API_TOKEN}`;
+    // Исправлено: заменен базовый хост на ваш персональный хост инстанса
+    const url = `https://7201.api.green-api.com/waInstance${GREEN_ID_INSTANCE}/sendMessage/${GREEN_API_TOKEN}`;
 
     try {
         const response = await fetch(url, {
@@ -52,7 +53,7 @@ async function sendWhatsAppNotification(phone, message) {
         });
 
         const data = await response.json();
-        console.log(`[Green API] Сообщение отправлено на ${chatId}:`, data);
+        console.log(`[Green API] Сообщение успешно отправлено на ${chatId}:`, data);
     } catch (error) {
         console.error('[Green API Error] Ошибка отправки:', error.message);
     }
