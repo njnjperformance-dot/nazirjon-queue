@@ -34,7 +34,7 @@ function formatPhoneNumber(phone) {
     return `${cleaned}@c.us`;
 }
 
-// Отправка сообщений через Green API с использованием ВАШЕГО хоста (7201.api.green-api.com)
+// Отправка сообщений через Green API (через ваш хост 7201.api.green-api.com)
 async function sendWhatsAppNotification(phone, message) {
     if (!phone) {
         console.log('[Green API] Ошибка: телефон не указан');
@@ -42,7 +42,6 @@ async function sendWhatsAppNotification(phone, message) {
     }
 
     const chatId = formatPhoneNumber(phone);
-    // Исправлено: заменен базовый хост на ваш персональный хост инстанса
     const url = `https://7201.api.green-api.com/waInstance${GREEN_ID_INSTANCE}/sendMessage/${GREEN_API_TOKEN}`;
 
     try {
@@ -76,8 +75,8 @@ app.get('/api/queue', (req, res) => {
     res.json(queueData);
 });
 
-// 2. Регистрация нового клиента с NFC (index.html)
-app.post('/api/register', (req, res) => {
+// 2. Регистрация нового клиента с NFC (index.html) + ОТПРАВКА ПРЕДУПРЕЖДЕНИЯ
+app.post('/api/register', async (req, res) => {
     const { name, service, brand, carNum, phone } = req.body;
 
     if (!name || !service || !brand || !carNum || !phone) {
@@ -98,6 +97,28 @@ app.post('/api/register', (req, res) => {
     };
 
     queueData.list[service].push(newClient);
+
+    // 📩 Отправка приветственного сообщения с предупреждением
+    const serviceName = service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
+    const welcomeMsg =
+        `Здравствуйте, ${name}! 👋
+
+Вы успешно зарегистрировались в живой очереди **Nazirjon ECU**!
+
+🚗 Автомобиль: **${brand}** (${carNum.toUpperCase()})
+🛠 Услуга: [${serviceName}]
+🔢 Ваша позиция в очереди: **№${pos}**
+
+⚠️ **ВАЖНЫЕ ПРАВИЛА И ПРЕДУПРЕЖДЕНИЯ:**
+1. Пожалуйста, паркуйте автомобиль строго вдоль линии, не перекрывая въезд другим машинам.
+2. Оставьте ключи мастеру или будьте на связи по телефону.
+3. Точное время ремонта и стоимость рассчитываются после проведения первичной диагностики.
+4. О готовности авто вы получите автоматическое уведомление в этот чат.
+
+Благодарим за обращение! 🚘✨`;
+
+    await sendWhatsAppNotification(phone, welcomeMsg);
+
     res.json({ success: true, pos, queueData });
 });
 
@@ -128,7 +149,7 @@ app.post('/api/admin/complete', async (req, res) => {
             queueData.completed[service].push(completedCar);
             recalculatePositions(service);
 
-            // 📩 Отправка сообщения клиенту в WhatsApp
+            // 📩 Сообщение о готовности с ценой
             const serviceName = service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
             const readyMsg =
                 `Здравствуйте, ${completedCar.name}! 👋
