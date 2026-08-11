@@ -7,11 +7,13 @@ const cron = require('node-cron');
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Отдаем файлы из корневой папки проекта
+app.use(express.static(__dirname));
 
 const DATA_FILE = path.join(__dirname, 'data.json');
 
-// Начальная структура данных
+// Структура данных
 let queueData = {
     pending: { injector: 0, ecu: 0 },
     list: { injector: [], ecu: [] },
@@ -21,26 +23,26 @@ let queueData = {
         workEarned: 0,
         partsEarned: 0,
         history: [],
-        archive: [] // Хранение закрытых смен прошлых дней
+        archive: []
     }
 };
 
-// Загрузка данных из файла
+// Загрузка данных из файла data.json
 function loadData() {
     if (fs.existsSync(DATA_FILE)) {
         try {
             const fileData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
             queueData = { ...queueData, ...fileData };
-            if (!queueData.dailyReport.archive) {
-                queueData.dailyReport.archive = [];
-            }
+            if (!queueData.dailyReport.archive) queueData.dailyReport.archive = [];
+            if (!queueData.completed) queueData.completed = { injector: [], ecu: [] };
+            if (!queueData.list) queueData.list = { injector: [], ecu: [] };
         } catch (e) {
             console.error('Ошибка чтения data.json:', e);
         }
     }
 }
 
-// Сохранение данных в файл
+// Сохранение данных в файл data.json
 function saveData() {
     try {
         fs.writeFileSync(DATA_FILE, JSON.stringify(queueData, null, 2), 'utf8');
@@ -70,7 +72,6 @@ function closeShiftInternal() {
         });
     }
 
-    // Обнуляем кассу за день
     rep.totalEarned = 0;
     rep.workEarned = 0;
     rep.partsEarned = 0;
@@ -79,41 +80,54 @@ function closeShiftInternal() {
     saveData();
 }
 
-// 🌙 Автоматический сброс смены в полночь (00:00) по часовому поясу Казахстана (UTC+5)
-// На серверах Render (UTC) 00:00 UTC+5 соответствуют 19:00 UTC
+// Сброс смены в полночь (00:00 UTC+5)
 cron.schedule('0 19 * * *', () => {
-    console.log('🌙 [CRON] Автоматическое закрытие смены в полночь...');
+    console.log('🌙 [CRON] Автоматическое закрытие смены...');
     closeShiftInternal();
 });
 
 // --- API МАРШРУТЫ ---
 
-// Получить данные очереди и отчёта
+// 1. Получить данные очереди
 app.get('/api/queue', (req, res) => {
     res.json(queueData);
 });
 
-// Запись клиента через сайт
+// 2. Регистрация клиента с формы
 app.post('/api/register', (req, res) => {
     const { service, name, brand, carNum, phone } = req.body;
     if (!service || !name || !brand || !carNum || !phone) {
-        return res.status(400).json({ error: 'Заполните все поля' });
+        return res.status(400).json({ error: 'Заполните все поля!' });
+    }
+
+    if (!queueData.list[service]) {
+        queueData.list[service] = [];
     }
 
     const targetList = queueData.list[service];
-    const isExist = targetList.some(item => item.carNum.toLowerCase() === carNum.toLowerCase());
+    const cleanCar = carNum.toString().toUpperCase().replace(/\s+/g, '');
+    const cleanPhone = phone.toString().replace(/\D/g, '');
+
+    // Проверка дубликатов по всем активным очередям
+    const allActive = [...(queueData.list.injector || []), ...(queueData.list.ecu || [])];
+    const isExist = allActive.some(item => {
+        const itemCar = item.carNum.toString().toUpperCase().replace(/\s+/g, '');
+        const itemPhone = item.phone ? item.phone.toString().replace(/\D/g, '') : '';
+        return itemCar === cleanCar || (cleanPhone && itemPhone === cleanPhone);
+    });
 
     if (isExist) {
-        return res.status(400).json({ error: 'Автомобиль с таким гос. номером уже есть в очереди!' });
+        return res.status(400).json({ error: 'Вы или ваш автомобиль уже состоите в очереди!' });
     }
 
-    const newPos = targetList.length + 1;
+    const offset = queueData.pending[service] || 0;
+    const newPos = offset + targetList.length + 1;
     const newItem = {
         id: Date.now().toString(),
         pos: newPos,
         name,
         brand,
-        carNum,
+        carNum: carNum.toUpperCase(),
         phone,
         time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
     };
@@ -124,7 +138,7 @@ app.post('/api/register', (req, res) => {
     res.json({ success: true, pos: newPos, item: newItem });
 });
 
-// Изменение кол-ва ожидания у ворот (Админ)
+// 3. Админ: Счетчик ожидающих у ворот
 app.post('/api/admin/pending', (req, res) => {
     const { service, action } = req.body;
     if (action === 'inc') queueData.pending[service]++;
@@ -133,17 +147,20 @@ app.post('/api/admin/pending', (req, res) => {
     res.json({ success: true, pending: queueData.pending });
 });
 
-// Перевод авто из ожидания в активную очередь (Админ)
+// 4. Админ: Добавить из ожидания
 app.post('/api/admin/add-from-pending', (req, res) => {
     const { service } = req.body;
     if (queueData.pending[service] > 0) {
         queueData.pending[service]--;
-        const newPos = queueData.list[service].length + 1;
+        const offset = queueData.pending[service] || 0;
+        const newPos = offset + queueData.list[service].length + 1;
         queueData.list[service].push({
             id: Date.now().toString(),
             pos: newPos,
+            name: 'Вчерашний / Долгий',
             brand: 'Авто у ворот',
-            carNum: 'БЕЗ НОМЕРА',
+            carNum: 'ПРИОРИТЕТ',
+            phone: '',
             time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
         });
         saveData();
@@ -151,7 +168,7 @@ app.post('/api/admin/add-from-pending', (req, res) => {
     res.json({ success: true, queueData });
 });
 
-// Перемещение позиции в очереди (Админ)
+// 5. Админ: Перемещение позиции (вверх/вниз)
 app.post('/api/admin/move', (req, res) => {
     const { service, index, direction } = req.body;
     const list = queueData.list[service];
@@ -166,13 +183,13 @@ app.post('/api/admin/move', (req, res) => {
         list[index + 1] = temp;
     }
 
-    // Пересчёт номеров позиций
-    list.forEach((item, i) => item.pos = i + 1);
+    const offset = queueData.pending[service] || 0;
+    list.forEach((item, i) => item.pos = offset + i + 1);
     saveData();
     res.json({ success: true, queueData });
 });
 
-// Расчёт и перевод в готовые (Админ)
+// 6. Админ: Расчёт и перевод в готовые
 app.post('/api/admin/complete', (req, res) => {
     const { service, index, workAmount, partsAmount } = req.body;
     const list = queueData.list[service];
@@ -187,13 +204,12 @@ app.post('/api/admin/complete', (req, res) => {
 
     const [item] = list.splice(index, 1);
 
-    // Пересчёт позиций в оставшейся очереди
-    list.forEach((it, i) => it.pos = i + 1);
+    const offset = queueData.pending[service] || 0;
+    list.forEach((it, i) => it.pos = offset + i + 1);
 
-    // Добавление в готовые
+    if (!queueData.completed[service]) queueData.completed[service] = [];
     queueData.completed[service].unshift(item);
 
-    // Фиксация в кассовом отчёте
     const rep = queueData.dailyReport;
     rep.totalEarned += total;
     rep.workEarned += work;
@@ -211,22 +227,23 @@ app.post('/api/admin/complete', (req, res) => {
     res.json({ success: true, queueData });
 });
 
-// Удаление из очереди / готовых (Админ)
+// 7. Админ: Удаление записи
 app.post('/api/admin/delete', (req, res) => {
-    const { service, index, type } = req.body; // type: 'list' или 'completed'
-    if (type === 'list') {
+    const { service, index, type } = req.body;
+    if (type === 'list' && queueData.list[service]) {
         queueData.list[service].splice(index, 1);
-        queueData.list[service].forEach((it, i) => it.pos = i + 1);
-    } else if (type === 'completed') {
+        const offset = queueData.pending[service] || 0;
+        queueData.list[service].forEach((it, i) => it.pos = offset + i + 1);
+    } else if (type === 'completed' && queueData.completed[service]) {
         queueData.completed[service].splice(index, 1);
     }
     saveData();
     res.json({ success: true, queueData });
 });
 
-// Полная очистка очереди / готовых (Админ)
+// 8. Админ: Очистить готовые
 app.post('/api/admin/clear-all', (req, res) => {
-    const { type } = req.body; // 'queue' или 'completed'
+    const { type } = req.body;
     if (type === 'queue') {
         queueData.list.injector = [];
         queueData.list.ecu = [];
@@ -240,7 +257,7 @@ app.post('/api/admin/clear-all', (req, res) => {
     res.json({ success: true, queueData });
 });
 
-// Ручное закрытие смены (Админ)
+// 9. Админ: Закрыть смену вручную
 app.post('/api/admin/close-shift', (req, res) => {
     closeShiftInternal();
     res.json({ success: true, queueData });

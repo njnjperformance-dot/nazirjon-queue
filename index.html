@@ -30,7 +30,6 @@
     h1 { text-align: center; color: #e60000; font-size: 1.4rem; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 1px; }
     .subtitle { text-align: center; color: #aaa; font-size: 0.8rem; margin-bottom: 18px; }
 
-    /* ЭКРАН 1: ПРАВИЛА ПРИ ВХОДЕ */
     #rulesScreen { display: block; }
     .step-card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
     .step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
@@ -38,7 +37,6 @@
     .step-title { font-weight: bold; font-size: 1rem; color: #fff; }
     .step-desc { font-size: 0.88rem; color: #ccc; line-height: 1.4; padding-left: 38px; }
 
-    /* ЭКРАН 2: ВАКЛАДКИ */
     #mainScreen { display: none; }
     .tabs-nav { display: flex; gap: 6px; margin-bottom: 18px; background: #1c1c1c; padding: 5px; border-radius: 10px; border: 1px solid #2a2a2a; }
     .tab-btn { flex: 1; padding: 10px 4px; background: transparent; border: none; color: #888; font-weight: bold; font-size: 0.82rem; border-radius: 7px; cursor: pointer; transition: 0.2s; text-align: center; }
@@ -158,11 +156,12 @@
 </div>
 
 <script>
-  const SERVER_URL = 'https://nazirjon-queue.onrender.com';
+  // Автоматический поиск адреса сервера
+  const SERVER_URL = window.location.origin;
 
   // НОМЕРА WHATSAPP ДЛЯ РАЗНЫХ УСЛУГ:
-  const PHONE_INJECTOR = '77067122121'; // Для форсунок
-  const PHONE_ECU = '77066061525';      // Для ЭБУ / Чипа
+  const PHONE_INJECTOR = '77067122121'; // Форсунки
+  const PHONE_ECU = '77066061525';      // ЭБУ / Чип
 
   // ВОРОТА №80 (ул. Амира Темира, 208)
   const TARGET_LAT = 42.303510;
@@ -290,9 +289,7 @@
     const carNum = document.getElementById('carNum').value;
     const phone = document.getElementById('phone').value;
 
-    // ВЫБОР НОМЕРА WHATSAPP В ЗАВИСИМОСТИ ОТ УСЛУГИ:
     const targetPhone = serviceType === 'ecu' ? PHONE_ECU : PHONE_INJECTOR;
-
     let posNumber = '';
 
     try {
@@ -306,7 +303,7 @@
       if (result.success) {
         posNumber = result.pos;
       } else {
-        alert(result.error || 'Вы уже записаны!');
+        alert(result.error || 'Ошибка записи!');
         return;
       }
     } catch (err) { console.warn(err); }
