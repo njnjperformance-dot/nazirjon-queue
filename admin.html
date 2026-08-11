@@ -3,85 +3,119 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nazirjon Performance - Панель Администратора</title>
+  <title>Админ-Панель - Nazirjon Performance</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-    body { background-color: #0a0a0a; color: #fff; padding: 15px; display: flex; justify-content: center; }
-    .container { width: 100%; max-width: 680px; }
-    h1 { text-align: center; color: #e60000; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; font-size: 1.4rem; }
+    body { background-color: #0d0d0d; color: #fff; padding: 15px; }
 
-    .tabs-nav { display: flex; gap: 10px; margin-bottom: 15px; background: #141414; padding: 6px; border-radius: 12px; border: 1px solid #262626; }
-    .tab-btn { flex: 1; padding: 12px; background: transparent; border: none; color: #888; font-weight: bold; font-size: 0.95rem; border-radius: 8px; cursor: pointer; transition: 0.2s; text-align: center; }
-    .tab-btn.active { background: #e60000; color: #fff; box-shadow: 0 4px 12px rgba(230, 0, 0, 0.4); }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #141414; padding: 15px; border-radius: 12px; border: 1px solid #262626; }
+    h1 { font-size: 1.2rem; color: #e60000; text-transform: uppercase; }
+
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 15px; }
+    .nav-btn { flex: 1; padding: 12px; background: #1a1a1a; border: 1px solid #333; color: #aaa; font-weight: bold; border-radius: 8px; cursor: pointer; text-align: center; }
+    .nav-btn.active { background: #e60000; color: #fff; border-color: #e60000; }
 
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
-    .btn-add { width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #e60000; color: #fff; font-weight: bold; border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-size: 0.9rem; transition: 0.2s; }
-    .btn-add:hover { background: #e60000; }
+    .board-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 15px; }
+    .board-column { background: #141414; border: 1px solid #262626; border-radius: 12px; padding: 15px; }
+    .board-title { font-size: 1rem; font-weight: bold; color: #e60000; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
 
-    .btn-reminder { width: 100%; padding: 12px; background: #ff9900; color: #000; border: none; font-weight: bold; border-radius: 8px; cursor: pointer; margin-bottom: 15px; font-size: 0.9rem; text-transform: uppercase; }
+    .pending-counter { display: flex; align-items: center; gap: 10px; background: #1f1a00; border: 1px solid #ffcc00; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+    .pending-val { font-size: 1.2rem; font-weight: bold; color: #ffcc00; }
+    .btn-small { padding: 5px 10px; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-small:hover { background: #555; }
 
-    .btn-clear-all { width: 100%; padding: 10px; background: #2a0000; border: 1px solid #ff3333; color: #ff4d4d; font-weight: bold; border-radius: 8px; cursor: pointer; margin-bottom: 12px; font-size: 0.85rem; text-transform: uppercase; transition: 0.2s; }
-    .btn-clear-all:hover { background: #ff3333; color: #fff; }
+    .card { background: #1c1c1c; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .card-pos { font-weight: bold; color: #e60000; font-size: 1rem; }
+    .card-title { font-weight: bold; font-size: 0.95rem; color: #fff; }
+    .card-num { color: #aaa; font-size: 0.82rem; }
 
-    .board-column { background: #141414; border: 1px solid #262626; padding: 16px; border-radius: 12px; margin-bottom: 18px; }
-    .board-title { text-align: center; font-size: 1.1rem; font-weight: bold; padding-bottom: 10px; border-bottom: 2px solid #e60000; margin-bottom: 15px; }
+    .card-actions { display: flex; gap: 5px; margin-top: 8px; }
+    .btn-action { flex: 1; padding: 6px; background: #262626; border: 1px solid #333; color: #fff; font-size: 0.75rem; border-radius: 4px; cursor: pointer; }
+    .btn-complete { background: #008040; border-color: #00e676; font-weight: bold; }
+    .btn-delete { background: #800000; border-color: #ff3333; }
 
-    .card { background: #222; border: 1px solid #333; margin-top: 10px; padding: 12px 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-    .card-yesterday { background: #2a0000; border-color: #ff4d4d; }
-    .card-completed { background: #002411; border-color: #00e676; }
+    .calc-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+    .calc-inputs input { width: 100%; padding: 6px; background: #111; border: 1px solid #333; color: #fff; border-radius: 4px; font-size: 0.8rem; }
 
-    .action-btn { padding: 8px 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; white-space: nowrap; }
-    .btn-complete { background: #00e676; color: #000; }
-    .btn-delete { background: #ff3333; color: #fff; }
+    .report-box { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 15px; }
+    .report-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
+    .stat-item { background: #111; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #222; }
+    .stat-val { font-size: 1.1rem; font-weight: bold; color: #00e676; }
+    .stat-lbl { font-size: 0.75rem; color: #888; margin-top: 4px; }
 
-    .report-box { background: #181818; border: 1px solid #333; padding: 15px; border-radius: 12px; }
-    .report-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; background: #222; padding: 15px; border-radius: 10px; }
-    .stat-item { text-align: center; }
-    .stat-val { font-size: 1.1rem; font-weight: bold; color: #00e676; margin-bottom: 4px; }
-    .stat-lbl { font-size: 0.7rem; color: #aaa; text-transform: uppercase; }
+    .report-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #222; font-size: 0.85rem; }
+    .report-row:last-child { border-bottom: none; }
 
-    .report-row { font-size: 0.88rem; padding: 12px 0; border-bottom: 1px dashed #333; display: flex; justify-content: space-between; align-items: center; }
+    .btn-clear-all { width: 100%; padding: 10px; background: #2a0000; border: 1px solid #e60000; color: #ff4d4d; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.85rem; margin-top: 10px; }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <h1>Nazirjon Performance</h1>
+<header>
+  <h1>NAZIRJON PERFORMANCE — АДМИН</h1>
+  <div style="font-size: 0.8rem; color: #888;" id="clock">00:00:00</div>
+</header>
 
-  <div class="tabs-nav">
-    <button class="tab-btn active" onclick="switchTab('queueTab', this)">🚗 Очередь и Готовые</button>
-    <button class="tab-btn" onclick="switchTab('reportTab', this)">📊 Отчёты и Касса</button>
-  </div>
+<div class="nav-tabs">
+  <button class="nav-btn active" onclick="switchAdminTab('queueTab', this)">🚘 Управление Очередью</button>
+  <button class="nav-btn" onclick="switchAdminTab('reportTab', this)">📊 Отчёты и Касса</button>
+</div>
 
-  <div id="queueTab" class="tab-content active">
-    <button class="btn-reminder" onclick="sendRemindersManual()">📢 Отправить напоминание в WhatsApp (07:00)</button>
+<div id="queueTab" class="tab-content active">
+  <div class="board-grid">
 
     <div class="board-column">
-      <div class="board-title">💉 INJECTOR PRO</div>
-      <button class="btn-add" onclick="addYesterday('injector')">➕ Добавить долгий/вчерашний ремонт</button>
-      <div id="pendingInjectorBox"></div>
-      <div id="listInjector"></div>
+      <div class="board-title">
+        <span>💉 INJECTOR PRO</span>
+        <button class="btn-small" onclick="addFromPending('injector')">+ Из ожидания</button>
+      </div>
+
+      <div class="pending-counter">
+        <span style="font-size: 0.85rem; color: #aaa; flex-grow: 1;">У ворот (ожидают):</span>
+        <button class="btn-small" onclick="updatePending('injector', 'dec')">-</button>
+        <span class="pending-val" id="pendingInj">0</span>
+        <button class="btn-small" onclick="updatePending('injector', 'inc')">+</button>
+      </div>
+
+      <div id="listInjContainer"></div>
     </div>
 
     <div class="board-column">
-      <div class="board-title">💻 ECU PERFORMANCE</div>
-      <button class="btn-add" onclick="addYesterday('ecu')">➕ Добавить долгий/вчерашний ремонт</button>
-      <div id="pendingECUBox"></div>
-      <div id="listECU"></div>
+      <div class="board-title" style="color: #3399ff;">
+        <span>💻 ECU PERFORMANCE</span>
+        <button class="btn-small" onclick="addFromPending('ecu')">+ Из ожидания</button>
+      </div>
+
+      <div class="pending-counter">
+        <span style="font-size: 0.85rem; color: #aaa; flex-grow: 1;">У ворот (ожидают):</span>
+        <button class="btn-small" onclick="updatePending('ecu', 'dec')">-</button>
+        <span class="pending-val" id="pendingEcu">0</span>
+        <button class="btn-small" onclick="updatePending('ecu', 'inc')">+</button>
+      </div>
+
+      <div id="listEcuContainer"></div>
     </div>
 
     <div class="board-column" style="border-color: #00e676;">
-      <div class="board-title" style="color: #00e676; border-color: #00e676;">✅ ГОТОВЫЕ АВТО (ОЖИДАЮТ ВЫДАЧИ)</div>
-      <button class="btn-clear-all" onclick="clearAllCompleted()">🗑 Удалить ВСЕ готовые машины</button>
-      <div id="listCompleted"></div>
+      <div class="board-title" style="color: #00e676;">✅ ГОТОВЫЕ К ВЫДАЧЕ</div>
+      <div id="listCompletedContainer"></div>
+      <button class="btn-clear-all" onclick="clearAll('completed')">Очистить список готовых</button>
     </div>
-  </div>
 
-  <div id="reportTab" class="tab-content">
+  </div>
+</div>
+
+<div id="reportTab" class="tab-content">
+  <div class="board-grid">
+
     <div class="board-column" style="border-color: #ff9900;">
-      <div class="board-title" style="color: #ff9900; border-color: #ff9900;">📊 КАССОВЫЙ ОТЧЁТ ЗА СЕГОДНЯ</div>
+      <div class="board-title" style="color: #ff9900;">📊 КАССОВЫЙ ОТЧЁТ ЗА СЕГОДНЯ</div>
+
+      <button class="btn-clear-all" style="border-color: #ff9900; color: #ff9900; background: #2a1a00; margin-bottom: 15px;" onclick="closeShift()">🌙 Закрыть смену / Начать новый день</button>
 
       <div class="report-box">
         <div class="report-stats">
@@ -99,21 +133,31 @@
           </div>
         </div>
 
-        <div style="font-weight: bold; font-size: 0.95rem; margin-bottom: 10px; color: #fff;">История расчётов за сегодня:</div>
+        <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 10px; color: #fff;">Расчёты за сегодня:</div>
         <div id="reportHistory"></div>
       </div>
     </div>
-  </div>
 
+    <div class="board-column" style="border-color: #555;">
+      <div class="board-title" style="color: #aaa;">📁 АРХИВ ПРОШЛЫХ СМЕН</div>
+      <div id="reportArchive"></div>
+    </div>
+
+  </div>
 </div>
 
 <script>
   const SERVER_URL = 'https://nazirjon-queue.onrender.com';
 
-  function switchTab(tabId, btnElement) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  function updateClock() {
+    document.getElementById('clock').innerText = new Date().toLocaleTimeString('ru-RU');
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
 
+  function switchAdminTab(tabId, btnElement) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
     btnElement.classList.add('active');
   }
@@ -123,82 +167,88 @@
       const res = await fetch(`${SERVER_URL}/api/queue`);
       const data = await res.json();
 
-      renderPendingBox('injector', data.pending.injector);
-      renderPendingBox('ecu', data.pending.ecu);
+      // Ожидание
+      document.getElementById('pendingInj').innerText = data.pending ? data.pending.injector : 0;
+      document.getElementById('pendingEcu').innerText = data.pending ? data.pending.ecu : 0;
 
-      renderList('Injector', data.list.injector, 'injector');
-      renderList('ECU', data.list.ecu, 'ecu');
-      renderCompleted(data.completed);
+      // Списки
+      renderQueueList('listInjContainer', data.list.injector, 'injector');
+      renderQueueList('listEcuContainer', data.list.ecu, 'ecu');
+      renderCompletedList('listCompletedContainer', data.completed);
+
+      // Отчёт
       renderReport(data.dailyReport);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error('Ошибка загрузки данных:', e);
+    }
   }
 
-  function renderPendingBox(service, count) {
-    const container = document.getElementById(service === 'injector' ? 'pendingInjectorBox' : 'pendingECUBox');
-    if (count > 0) {
-      container.innerHTML = `
-        <div class="card card-yesterday">
-          <div>
-            <div style="font-weight:bold; color:#ff4d4d;">⚠️ Вчерашние ремонты: ${count}</div>
-            <div style="font-size:0.85rem; color:#aaa;">В приоритетном списке</div>
-          </div>
-          <button class="action-btn btn-complete" onclick="markYesterdayComplete('${service}')">🚗 Готово к выдаче</button>
-        </div>
-      `;
-    } else { container.innerHTML = ''; }
-  }
-
-  function renderList(elementId, list, service) {
-    const container = document.getElementById(`list${elementId}`);
-    container.innerHTML = '';
+  function renderQueueList(containerId, list, service) {
+    const box = document.getElementById(containerId);
+    box.innerHTML = '';
 
     if (!list || list.length === 0) {
-      container.innerHTML = '<p style="color:#666; text-align:center; padding:10px; font-size:0.9rem;">Нет записанных машин</p>';
+      box.innerHTML = '<div style="color:#666; font-size:0.85rem; text-align:center; padding:15px;">Очередь пуста</div>';
       return;
     }
 
-    list.forEach(item => {
-      container.innerHTML += `
+    list.forEach((item, index) => {
+      box.innerHTML += `
         <div class="card">
-            <div>
-                <div style="font-weight:bold; color:#fff;">№${item.pos} - ${item.brand} <span style="color:#e60000;">(${item.carNum})</span></div>
-                <div style="font-size:0.85rem; color:#aaa;">Имя: ${item.name} | Тел: ${item.phone}</div>
-            </div>
-            <button class="action-btn btn-complete" onclick="markComplete('${service}', '${item.id || item.pos}')">🚗 Готово к выдаче</button>
+          <div class="card-header">
+            <span class="card-pos">№${item.pos}</span>
+            <span class="card-title">${item.brand}</span>
+            <span class="card-num">${item.carNum}</span>
+          </div>
+          <div style="font-size:0.78rem; color:#aaa; margin-bottom:6px;">
+            👤 ${item.name || 'Клиент'} | 📞 ${item.phone || '-'} | 🕒 ${item.time}
+          </div>
+
+          <div class="calc-inputs">
+            <input type="number" id="work_${service}_${index}" placeholder="Услуга (₸)">
+            <input type="number" id="parts_${service}_${index}" placeholder="Запчасть (₸)">
+          </div>
+
+          <div class="card-actions">
+            <button class="btn-action" onclick="moveItem('${service}', ${index}, 'up')">▲</button>
+            <button class="btn-action" onclick="moveItem('${service}', ${index}, 'down')">▼</button>
+            <button class="btn-action btn-complete" onclick="completeItem('${service}', ${index})">РАССЧИТАТЬ ✅</button>
+            <button class="btn-action btn-delete" onclick="deleteItem('${service}', ${index}, 'list')">✕</button>
+          </div>
         </div>
       `;
     });
   }
 
-  function renderCompleted(completedData) {
-    const container = document.getElementById('listCompleted');
-    container.innerHTML = '';
+  function renderCompletedList(containerId, completed) {
+    const box = document.getElementById(containerId);
+    box.innerHTML = '';
 
-    let hasCompleted = false;
-
-    if (completedData) {
-      ['injector', 'ecu'].forEach(s => {
-        if (completedData[s] && completedData[s].length > 0) {
-          completedData[s].forEach(item => {
-            hasCompleted = true;
-            container.innerHTML += `
-              <div class="card card-completed">
-                  <div>
-                      <div style="font-weight:bold; color:#fff;">${item.brand} <span style="color:#00e676;">(${item.carNum})</span></div>
-                      <div style="font-size:0.8rem; color:#aaa;">Работа: ${(item.workPrice || 0).toLocaleString()} ₸ | Запчасти: ${(item.partsPrice || 0).toLocaleString()} ₸</div>
-                      <div style="font-size:0.9rem; color:#00e676; font-weight:bold; margin-top:2px;">Итого: ${(item.totalPrice || 0).toLocaleString()} ₸</div>
-                  </div>
-                  <button class="action-btn btn-delete" onclick="removeCompleted('${s}', '${item.carNum}')">❌ Удалить</button>
-              </div>
-            `;
-          });
-        }
-      });
+    let allComp = [];
+    if (completed) {
+      if (completed.injector) completed.injector.forEach((item, index) => allComp.push({ ...item, service: 'injector', origIndex: index }));
+      if (completed.ecu) completed.ecu.forEach((item, index) => allComp.push({ ...item, service: 'ecu', origIndex: index }));
     }
 
-    if (!hasCompleted) {
-      container.innerHTML = '<p style="color:#666; text-align:center; padding:10px; font-size:0.9rem;">Готовых машин пока нет</p>';
+    if (allComp.length === 0) {
+      box.innerHTML = '<div style="color:#666; font-size:0.85rem; text-align:center; padding:15px;">Список пуст</div>';
+      return;
     }
+
+    allComp.forEach(item => {
+      box.innerHTML += `
+        <div class="card" style="border-color:#00e676;">
+          <div class="card-header">
+            <span class="card-title" style="color:#00e676;">🚘 ${item.brand}</span>
+            <span class="card-num">${item.carNum}</span>
+          </div>
+          <div style="font-size:0.78rem; color:#aaa; margin-bottom:6px;">
+            Услуга: ${item.service === 'injector' ? 'INJECTOR' : 'ECU'} | Время: ${item.time}
+          </div>
+          <button class="btn-action btn-delete" onclick="deleteItem('${item.service}', ${item.origIndex}, 'completed')">Удалить из готовых</button>
+        </div>
+      `;
+    });
   }
 
   function renderReport(rep) {
@@ -208,6 +258,7 @@
     document.getElementById('repWork').innerText = `${rep.workEarned.toLocaleString()} ₸`;
     document.getElementById('repParts').innerText = `${rep.partsEarned.toLocaleString()} ₸`;
 
+    // 1. Текущие расчеты за день
     const container = document.getElementById('reportHistory');
     container.innerHTML = '';
 
@@ -217,85 +268,50 @@
           <div class="report-row">
             <div>
               <strong style="color:#fff;">${h.time}</strong> — ${h.brand} <span style="color:#aaa;">(${h.carNum})</span>
-              <div style="color:#888; font-size:0.75rem; margin-top:2px;">Услуги: ${h.work.toLocaleString()} ₸ | Детали: ${h.parts.toLocaleString()} ₸</div>
+              <div style="color:#888; font-size:0.75rem; margin-top:2px;">Услуги: ${h.work.toLocaleString()} ₸ | Запчасти: ${h.parts.toLocaleString()} ₸</div>
             </div>
             <div style="font-weight:bold; color:#00e676; font-size:0.95rem;">${h.total.toLocaleString()} ₸</div>
           </div>
         `;
       });
     } else {
-      container.innerHTML = '<div style="color:#666; font-size:0.85rem; text-align:center; padding:15px;">Сегодня расчётов еще не было</div>';
+      container.innerHTML = '<div style="color:#666; font-size:0.85rem; text-align:center; padding:15px;">Сегодня расчётов ещё не было</div>';
     }
-  }
 
-  async function markComplete(service, id) {
-    const workPrice = prompt('Стоимость работы (₸):', '20000');
-    if (workPrice === null) return;
+    // 2. Архив прошлых смен
+    const archiveBox = document.getElementById('reportArchive');
+    archiveBox.innerHTML = '';
 
-    const partsPrice = prompt('Стоимость запчасти (₸, если нет — 0):', '0');
-    if (partsPrice === null) return;
-
-    await fetch(`${SERVER_URL}/api/admin/complete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ service, id, workPrice, partsPrice })
-    });
-    loadAdminData();
-  }
-
-  async function markYesterdayComplete(service) {
-    const workPrice = prompt('Стоимость работы для вчерашней машины (₸):', '20000');
-    if (workPrice === null) return;
-
-    const partsPrice = prompt('Стоимость запчасти (₸, если нет — 0):', '0');
-    if (partsPrice === null) return;
-
-    await fetch(`${SERVER_URL}/api/admin/complete-yesterday`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ service, workPrice, partsPrice })
-    });
-    loadAdminData();
-  }
-
-  async function sendRemindersManual() {
-    if (!confirm('Отправить напоминание в WhatsApp всем записанным клиентам?')) return;
-    await fetch(`${SERVER_URL}/api/admin/send-reminders`, { method: 'POST' });
-    alert('✅ Напоминания отправлены!');
-  }
-
-  async function removeCompleted(service, carNum) {
-    if (!confirm('Удалить из готовых?')) return;
-    await fetch(`${SERVER_URL}/api/admin/remove-completed`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ service, carNum })
-    });
-    loadAdminData();
-  }
-
-  // 🗑 ОЧИСТИТЬ ВСЕ ГОТОВЫЕ
-  async function clearAllCompleted() {
-    if (!confirm('Вы уверены, что хотите полностью очистить список всех готовых машин?')) return;
-
-    try {
-      const res = await fetch(`${SERVER_URL}/api/admin/clear-all-completed`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+    if (rep.archive && rep.archive.length > 0) {
+      rep.archive.forEach(a => {
+        archiveBox.innerHTML += `
+          <div class="report-row">
+            <div>
+              <strong style="color:#ff9900;">📅 ${a.date}</strong> — Обслужено: ${a.count} авто
+              <div style="color:#888; font-size:0.75rem; margin-top:2px;">Работа: ${a.work.toLocaleString()} ₸ | Запчасти: ${a.parts.toLocaleString()} ₸</div>
+            </div>
+            <div style="font-weight:bold; color:#00e676; font-size:0.95rem;">${a.total.toLocaleString()} ₸</div>
+          </div>
+        `;
       });
-      const data = await res.json();
-      if (data.success) {
-        loadAdminData();
-      } else {
-        alert('Ошибка при очистке');
-      }
-    } catch (err) {
-      alert('Ошибка подключения к серверу');
+    } else {
+      archiveBox.innerHTML = '<div style="color:#666; font-size:0.85rem; text-align:center; padding:15px;">Архив смен пуст</div>';
     }
   }
 
-  async function addYesterday(service) {
-    await fetch(`${SERVER_URL}/api/admin/add-yesterday`, {
+  // --- ДЕЙСТВИЯ ---
+
+  async function updatePending(service, action) {
+    await fetch(`${SERVER_URL}/api/admin/pending`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service, action })
+    });
+    loadAdminData();
+  }
+
+  async function addFromPending(service) {
+    await fetch(`${SERVER_URL}/api/admin/add-from-pending`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ service })
@@ -303,7 +319,63 @@
     loadAdminData();
   }
 
-  setInterval(loadAdminData, 3000);
+  async function moveItem(service, index, direction) {
+    await fetch(`${SERVER_URL}/api/admin/move`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service, index, direction })
+    });
+    loadAdminData();
+  }
+
+  async function completeItem(service, index) {
+    const workAmount = document.getElementById(`work_${service}_${index}`).value;
+    const partsAmount = document.getElementById(`parts_${service}_${index}`).value;
+
+    await fetch(`${SERVER_URL}/api/admin/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service, index, workAmount, partsAmount })
+    });
+    loadAdminData();
+  }
+
+  async function deleteItem(service, index, type) {
+    if (!confirm('Удалить запись?')) return;
+    await fetch(`${SERVER_URL}/api/admin/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service, index, type })
+    });
+    loadAdminData();
+  }
+
+  async function clearAll(type) {
+    if (!confirm('Вы уверены, что хотите очистить весь список?')) return;
+    await fetch(`${SERVER_URL}/api/admin/clear-all`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type })
+    });
+    loadAdminData();
+  }
+
+  async function closeShift() {
+    if (!confirm('Вы точно хотите закрыть текущую смену и сохранить результат в архив? Счёт за сегодня обнулится.')) return;
+
+    try {
+      const res = await fetch(`${SERVER_URL}/api/admin/close-shift`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        alert('✅ Смена успешно закрыта и сохранена в архив!');
+        loadAdminData();
+      }
+    } catch (e) {
+      alert('Ошибка при закрытии смены');
+    }
+  }
+
+  setInterval(loadAdminData, 4000);
   loadAdminData();
 </script>
 </body>

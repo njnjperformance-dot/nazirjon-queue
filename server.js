@@ -1,21 +1,17 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 const cron = require('node-cron');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// ==========================================
-// НАСТРОЙКИ GREEN API (WhatsApp)
-// ==========================================
-const GREEN_ID_INSTANCE = '720122704980';
-const GREEN_API_TOKEN = '9feb851977034a5b8f6f863b110881b8fdb04a9df28e40278a';
+const DATA_FILE = path.join(__dirname, 'data.json');
 
-// База данных в оперативной памяти
+// Начальная структура данных
 let queueData = {
     pending: { injector: 0, ecu: 0 },
     list: { injector: [], ecu: [] },
@@ -24,275 +20,231 @@ let queueData = {
         totalEarned: 0,
         workEarned: 0,
         partsEarned: 0,
-        history: []
+        history: [],
+        archive: [] // Хранение закрытых смен прошлых дней
     }
 };
 
-// Форматирование номера для WhatsApp
-function formatPhoneNumber(phone) {
-    if (!phone) return null;
-    let cleaned = phone.toString().replace(/\D/g, '');
-    if (cleaned.length === 11 && cleaned.startsWith('8')) {
-        cleaned = '7' + cleaned.slice(1);
-    }
-    return `${cleaned}@c.us`;
-}
-
-// Отправка сообщений в WhatsApp
-async function sendWhatsAppNotification(phone, message) {
-    if (!phone) return;
-    const chatId = formatPhoneNumber(phone);
-    const url = `https://7201.api.green-api.com/waInstance${GREEN_ID_INSTANCE}/sendMessage/${GREEN_API_TOKEN}`;
-
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chatId, message })
-        });
-        const data = await response.json();
-        console.log(`[Green API] Отправлено на ${chatId}:`, data);
-    } catch (error) {
-        console.error('[Green API Error]', error.message);
-    }
-}
-
-// Перерасчет порядковых номеров
-function recalculatePositions(service) {
-    const offset = queueData.pending[service] || 0;
-    queueData.list[service].forEach((item, index) => {
-        item.pos = offset + index + 1;
-    });
-}
-
-// ==========================================
-// УТРЕННЯЯ РАССЫЛКА НАПОМИНАНИЙ В 07:00
-// ==========================================
-// Для серверов Render (UTC) 07:00 времени Казахстана (UTC+5) — это 02:00 UTC
-cron.schedule('0 2 * * *', async () => {
-    console.log('⏰ [CRON] Запуск утренней рассылки напоминаний...');
-    await triggerMorningReminders();
-});
-
-async function triggerMorningReminders() {
-    const reminderMsg =
-        `Доброе утро! ☀️ 
-
-Напоминаем, вы записаны в очередь **Nazirjon Performance**!
-
-⚠️ **ОБЯЗАТЕЛЬНОЕ ПРАВИЛО:**
-Будьте у ворот (№80, ул. Амира Темира, 208) возле своего авто **с 08:50 до 09:00**.
-Если в 09:00 вас не окажется у машины — **запись автоматически аннулируется**!`;
-
-    const allClients = [...queueData.list.injector, ...queueData.list.ecu];
-    for (const client of allClients) {
-        if (client.phone) {
-            await sendWhatsAppNotification(client.phone, reminderMsg);
+// Загрузка данных из файла
+function loadData() {
+    if (fs.existsSync(DATA_FILE)) {
+        try {
+            const fileData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+            queueData = { ...queueData, ...fileData };
+            if (!queueData.dailyReport.archive) {
+                queueData.dailyReport.archive = [];
+            }
+        } catch (e) {
+            console.error('Ошибка чтения data.json:', e);
         }
     }
 }
 
-// ==========================================
-// API МАРШРУТЫ
-// ==========================================
+// Сохранение данных в файл
+function saveData() {
+    try {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(queueData, null, 2), 'utf8');
+    } catch (e) {
+        console.error('Ошибка сохранения data.json:', e);
+    }
+}
 
-// Получить актуальные данные
+loadData();
+
+// Внутренняя функция закрытия смены
+function closeShiftInternal() {
+    const rep = queueData.dailyReport;
+    if (rep.totalEarned > 0 || (rep.history && rep.history.length > 0)) {
+        const todayStr = new Date().toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+
+        rep.archive.unshift({
+            date: todayStr,
+            total: rep.totalEarned,
+            work: rep.workEarned,
+            parts: rep.partsEarned,
+            count: rep.history.length
+        });
+    }
+
+    // Обнуляем кассу за день
+    rep.totalEarned = 0;
+    rep.workEarned = 0;
+    rep.partsEarned = 0;
+    rep.history = [];
+
+    saveData();
+}
+
+// 🌙 Автоматический сброс смены в полночь (00:00) по часовому поясу Казахстана (UTC+5)
+// На серверах Render (UTC) 00:00 UTC+5 соответствуют 19:00 UTC
+cron.schedule('0 19 * * *', () => {
+    console.log('🌙 [CRON] Автоматическое закрытие смены в полночь...');
+    closeShiftInternal();
+});
+
+// --- API МАРШРУТЫ ---
+
+// Получить данные очереди и отчёта
 app.get('/api/queue', (req, res) => {
     res.json(queueData);
 });
 
-// Запись клиента
-app.post('/api/register', async (req, res) => {
-    const { name, service, brand, carNum, phone } = req.body;
-
-    if (!name || !service || !brand || !carNum || !phone) {
+// Запись клиента через сайт
+app.post('/api/register', (req, res) => {
+    const { service, name, brand, carNum, phone } = req.body;
+    if (!service || !name || !brand || !carNum || !phone) {
         return res.status(400).json({ error: 'Заполните все поля' });
     }
 
-    const cleanPhone = phone.toString().replace(/\D/g, '');
-    const cleanCarNum = carNum.toString().toUpperCase().replace(/\s+/g, '');
+    const targetList = queueData.list[service];
+    const isExist = targetList.some(item => item.carNum.toLowerCase() === carNum.toLowerCase());
 
-    // Проверка дубликатов
-    const allActiveClients = [...queueData.list.injector, ...queueData.list.ecu];
-    const existingClient = allActiveClients.find(client => {
-        const cPhone = client.phone.toString().replace(/\D/g, '');
-        const cCar = client.carNum.toString().toUpperCase().replace(/\s+/g, '');
-        return cPhone === cleanPhone || cCar === cleanCarNum;
-    });
-
-    if (existingClient) {
-        return res.status(400).json({
-            error: `Вы уже есть в очереди! (Место №${existingClient.pos}). Повторная запись запрещена.`
-        });
+    if (isExist) {
+        return res.status(400).json({ error: 'Автомобиль с таким гос. номером уже есть в очереди!' });
     }
 
-    const offset = queueData.pending[service] || 0;
-    const pos = offset + queueData.list[service].length + 1;
-
-    const newClient = {
+    const newPos = targetList.length + 1;
+    const newItem = {
         id: Date.now().toString(),
+        pos: newPos,
         name,
         brand,
-        carNum: carNum.toUpperCase(),
+        carNum,
         phone,
-        pos,
-        dateAdded: new Date().toLocaleDateString('ru-RU')
+        time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
     };
 
-    queueData.list[service].push(newClient);
+    targetList.push(newItem);
+    saveData();
 
-    const serviceName = service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
-    const welcomeMsg =
-        `Здравствуйте, ${name}! 👋
-
-Вы записаны в электронную очередь **Nazirjon Performance**!
-
-🚘 Авто: **${brand}** (${carNum.toUpperCase()})
-🛠 Услуга: [${serviceName}]
-🔢 Номер в очереди: **№${pos}**
-
-⚠️ Будьте у ворот №80 с 08:50 до 09:00. В 09:00 при отсутствии водителя запись сбрасывается.`;
-
-    await sendWhatsAppNotification(phone, welcomeMsg);
-    res.json({ success: true, pos, queueData });
+    res.json({ success: true, pos: newPos, item: newItem });
 });
 
-// Добавить вчерашний ремонт
-app.post('/api/admin/add-yesterday', (req, res) => {
+// Изменение кол-ва ожидания у ворот (Админ)
+app.post('/api/admin/pending', (req, res) => {
+    const { service, action } = req.body;
+    if (action === 'inc') queueData.pending[service]++;
+    if (action === 'dec' && queueData.pending[service] > 0) queueData.pending[service]--;
+    saveData();
+    res.json({ success: true, pending: queueData.pending });
+});
+
+// Перевод авто из ожидания в активную очередь (Админ)
+app.post('/api/admin/add-from-pending', (req, res) => {
     const { service } = req.body;
-    if (queueData.pending[service] !== undefined) {
-        queueData.pending[service] += 1;
-        recalculatePositions(service);
-        res.json({ success: true, queueData });
-    } else {
-        res.status(400).json({ error: 'Неверный тип услуги' });
-    }
-});
-
-// Завершить ремонт и выставить чек
-app.post('/api/admin/complete', async (req, res) => {
-    const { service, id, workPrice, partsPrice } = req.body;
-
-    const work = parseInt(workPrice) || 0;
-    const parts = parseInt(partsPrice) || 0;
-    const totalPrice = work + parts;
-
-    if (queueData.list[service]) {
-        const index = queueData.list[service].findIndex(item => item.id === id || String(item.pos) === String(id));
-
-        if (index !== -1) {
-            const [completedCar] = queueData.list[service].splice(index, 1);
-            completedCar.completedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            completedCar.workPrice = work;
-            completedCar.partsPrice = parts;
-            completedCar.totalPrice = totalPrice;
-
-            queueData.completed[service].push(completedCar);
-            recalculatePositions(service);
-
-            // Кассовый отчет
-            queueData.dailyReport.totalEarned += totalPrice;
-            queueData.dailyReport.workEarned += work;
-            queueData.dailyReport.partsEarned += parts;
-            queueData.dailyReport.history.push({
-                time: completedCar.completedTime,
-                brand: completedCar.brand,
-                carNum: completedCar.carNum,
-                service: service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE',
-                work,
-                parts,
-                total: totalPrice
-            });
-
-            // Уведомление клиенту
-            const serviceName = service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
-            const readyMsg =
-                `Здравствуйте, ${completedCar.name}! 👋
-
-✅ *Ваш автомобиль готов к выдаче!*
-🚘 **${completedCar.brand}** (${completedCar.carNum})
-🛠 Услуга: [${serviceName}]
-
-💰 **Сумма к оплате:** ${totalPrice.toLocaleString()} ₸
-
-Ждем вас у ворот №80! 🚘✨`;
-
-            await sendWhatsAppNotification(completedCar.phone, readyMsg);
-            return res.json({ success: true, queueData });
-        }
-    }
-
-    res.status(400).json({ error: 'Машина не найдена' });
-});
-
-// Завершить вчерашний ремонт
-app.post('/api/admin/complete-yesterday', (req, res) => {
-    const { service, workPrice, partsPrice } = req.body;
-
-    const work = parseInt(workPrice) || 0;
-    const parts = parseInt(partsPrice) || 0;
-    const totalPrice = work + parts;
-
     if (queueData.pending[service] > 0) {
-        queueData.pending[service] -= 1;
-        recalculatePositions(service);
-
-        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const completedCar = {
-            id: 'yesterday_' + Date.now(),
-            brand: 'Длительный / Вчерашний ремонт',
-            carNum: 'ПРИОРИТЕТ',
-            workPrice: work,
-            partsPrice: parts,
-            totalPrice: totalPrice,
-            completedTime: timeStr
-        };
-
-        queueData.completed[service].push(completedCar);
-
-        queueData.dailyReport.totalEarned += totalPrice;
-        queueData.dailyReport.workEarned += work;
-        queueData.dailyReport.partsEarned += parts;
-        queueData.dailyReport.history.push({
-            time: timeStr,
-            brand: 'Длительный ремонт',
-            carNum: 'ПРИОРИТЕТ',
-            service: service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE',
-            work,
-            parts,
-            total: totalPrice
+        queueData.pending[service]--;
+        const newPos = queueData.list[service].length + 1;
+        queueData.list[service].push({
+            id: Date.now().toString(),
+            pos: newPos,
+            brand: 'Авто у ворот',
+            carNum: 'БЕЗ НОМЕРА',
+            time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
         });
-
-        return res.json({ success: true, queueData });
+        saveData();
     }
-
-    res.status(400).json({ error: 'Нет длительных ремонтов' });
-});
-
-// Ручной запуск утренней рассылки
-app.post('/api/admin/send-reminders', async (req, res) => {
-    await triggerMorningReminders();
-    res.json({ success: true });
-});
-
-// Удалить 1 машину из готовых
-app.post('/api/admin/remove-completed', (req, res) => {
-    const { service, carNum } = req.body;
-    if (queueData.completed[service]) {
-        queueData.completed[service] = queueData.completed[service].filter(item => item.carNum !== carNum);
-        return res.json({ success: true, queueData });
-    }
-    res.status(400).json({ error: 'Ошибка' });
-});
-
-// 🗑 МАССОВАЯ ОЧИСТКА ВСЕХ ГОТОВЫХ МАШИН
-app.post('/api/admin/clear-all-completed', (req, res) => {
-    queueData.completed.injector = [];
-    queueData.completed.ecu = [];
-    console.log('[Админка] Все готовые авто очищены.');
     res.json({ success: true, queueData });
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Сервер Nazirjon Performance запущен на порту ${PORT}`);
+// Перемещение позиции в очереди (Админ)
+app.post('/api/admin/move', (req, res) => {
+    const { service, index, direction } = req.body;
+    const list = queueData.list[service];
+
+    if (direction === 'up' && index > 0) {
+        const temp = list[index];
+        list[index] = list[index - 1];
+        list[index - 1] = temp;
+    } else if (direction === 'down' && index < list.length - 1) {
+        const temp = list[index];
+        list[index] = list[index + 1];
+        list[index + 1] = temp;
+    }
+
+    // Пересчёт номеров позиций
+    list.forEach((item, i) => item.pos = i + 1);
+    saveData();
+    res.json({ success: true, queueData });
 });
+
+// Расчёт и перевод в готовые (Админ)
+app.post('/api/admin/complete', (req, res) => {
+    const { service, index, workAmount, partsAmount } = req.body;
+    const list = queueData.list[service];
+
+    if (index < 0 || index >= list.length) {
+        return res.status(400).json({ error: 'Автомобиль не найден' });
+    }
+
+    const work = Number(workAmount) || 0;
+    const parts = Number(partsAmount) || 0;
+    const total = work + parts;
+
+    const [item] = list.splice(index, 1);
+
+    // Пересчёт позиций в оставшейся очереди
+    list.forEach((it, i) => it.pos = i + 1);
+
+    // Добавление в готовые
+    queueData.completed[service].unshift(item);
+
+    // Фиксация в кассовом отчёте
+    const rep = queueData.dailyReport;
+    rep.totalEarned += total;
+    rep.workEarned += work;
+    rep.partsEarned += parts;
+    rep.history.push({
+        time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+        brand: item.brand,
+        carNum: item.carNum,
+        work,
+        parts,
+        total
+    });
+
+    saveData();
+    res.json({ success: true, queueData });
+});
+
+// Удаление из очереди / готовых (Админ)
+app.post('/api/admin/delete', (req, res) => {
+    const { service, index, type } = req.body; // type: 'list' или 'completed'
+    if (type === 'list') {
+        queueData.list[service].splice(index, 1);
+        queueData.list[service].forEach((it, i) => it.pos = i + 1);
+    } else if (type === 'completed') {
+        queueData.completed[service].splice(index, 1);
+    }
+    saveData();
+    res.json({ success: true, queueData });
+});
+
+// Полная очистка очереди / готовых (Админ)
+app.post('/api/admin/clear-all', (req, res) => {
+    const { type } = req.body; // 'queue' или 'completed'
+    if (type === 'queue') {
+        queueData.list.injector = [];
+        queueData.list.ecu = [];
+        queueData.pending.injector = 0;
+        queueData.pending.ecu = 0;
+    } else if (type === 'completed') {
+        queueData.completed.injector = [];
+        queueData.completed.ecu = [];
+    }
+    saveData();
+    res.json({ success: true, queueData });
+});
+
+// Ручное закрытие смены (Админ)
+app.post('/api/admin/close-shift', (req, res) => {
+    closeShiftInternal();
+    res.json({ success: true, queueData });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Сервер запущен на порту ${PORT}`));
