@@ -9,56 +9,48 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// ==========================================
 // НАСТРОЙКИ GREEN API
-// ==========================================
 const GREEN_ID_INSTANCE = '720122704980';
 const GREEN_API_TOKEN = '9feb851977034a5b8f6f863b110881b8fdb04a9df28e40278a';
 
-// Хранилище очереди
+// Хранилище
 let queueData = {
     pending: { injector: 0, ecu: 0 },
     list: { injector: [], ecu: [] },
-    completed: { injector: [], ecu: [] }
+    completed: { injector: [], ecu: [] },
+    dailyReport: {
+        totalEarned: 0,
+        workEarned: 0,
+        partsEarned: 0,
+        history: []
+    }
 };
 
-// Функция приведения номера к международному формату Green API (7XXXXXXXXXX@c.us)
 function formatPhoneNumber(phone) {
     if (!phone) return null;
-    let cleaned = phone.toString().replace(/\D/g, ''); // Удаляем все кроме цифр
-
+    let cleaned = phone.toString().replace(/\D/g, '');
     if (cleaned.length === 11 && cleaned.startsWith('8')) {
         cleaned = '7' + cleaned.slice(1);
     }
-
     return `${cleaned}@c.us`;
 }
 
-// Отправка сообщений через Green API (через ваш хост 7201.api.green-api.com)
 async function sendWhatsAppNotification(phone, message) {
-    if (!phone) {
-        console.log('[Green API] Ошибка: телефон не указан');
-        return;
-    }
-
+    if (!phone) return;
     const chatId = formatPhoneNumber(phone);
     const url = `https://7201.api.green-api.com/waInstance${GREEN_ID_INSTANCE}/sendMessage/${GREEN_API_TOKEN}`;
 
     try {
-        const response = await fetch(url, {
+        await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chatId, message })
         });
-
-        const data = await response.json();
-        console.log(`[Green API] Сообщение успешно отправлено на ${chatId}:`, data);
     } catch (error) {
-        console.error('[Green API Error] Ошибка отправки:', error.message);
+        console.error('[Green API Error]', error.message);
     }
 }
 
-// Перерасчет позиций активной очереди
 function recalculatePositions(service) {
     const offset = queueData.pending[service] || 0;
     queueData.list[service].forEach((item, index) => {
@@ -67,15 +59,14 @@ function recalculatePositions(service) {
 }
 
 // ==========================================
-// API МАРШРУТЫ
+// API
 // ==========================================
 
-// 1. Получить состояние очереди
 app.get('/api/queue', (req, res) => {
     res.json(queueData);
 });
 
-// 2. Регистрация нового клиента с NFC (index.html) + ОТПРАВКА ПРЕДУПРЕЖДЕНИЯ
+// Регистрация клиента
 app.post('/api/register', async (req, res) => {
     const { name, service, brand, carNum, phone } = req.body;
 
@@ -98,35 +89,27 @@ app.post('/api/register', async (req, res) => {
 
     queueData.list[service].push(newClient);
 
-    // 📩 Отправка приветственного сообщения с предупреждением
     const serviceName = service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
     const welcomeMsg =
         `Здравствуйте, ${name}! 👋
 
-Вы успешно зарегистрировались в живой очереди **Nazirjon Performance**!
+Вы успешно записаны в живую очередь **Nazirjon Performance**!
 
 🚗 Автомобиль: **${brand}** (${carNum.toUpperCase()})
 🛠 Услуга: [${serviceName}]
-🔢 Ваша позиция в очереди: **№${pos}**
+🔢 Ваша позиция: **№${pos}**
 
-⚠️ **ВАЖНЫЕ ПРАВИЛА И ПРЕДУПРЕЖДЕНИЯ:**
-1. Пожалуйста, паркуйте автомобиль строго вдоль линии, не перекрывая въезд другим машинам.
-2. Будьте на связи по телефону.
-3. Точное стоимость после проведения первичной диагностики.
-4. О готовности авто вы получите автоматическое уведомление в этот чат.
-5. Приём автомобилей начинается ровно в 08:50. Все записанные должны быть у машины до 09:00.
-6. Если при выходе мастера водителя не окажется у автомобиля — запись аннулируется, и в ремонте будет отказано.
-7. Пожалуйста, не стучите в двери сервиса.
-8. Категорически запрещено парковаться и перекрывать ворота соседей.
+⚠️ **ВАЖНО:**
+1. Приём авто строго в **08:50 – 09:00**.
+2. Водитель должен находиться возле машины.
 
-Благодарим за обращение! 🚘✨`;
+О готовности сообщим в этот чат. 🚘✨`;
 
     await sendWhatsAppNotification(phone, welcomeMsg);
-
     res.json({ success: true, pos, queueData });
 });
 
-// 3. Админ: Добавить длительный / вчерашний ремонт вручную
+// Добавить вчерашнюю машину (счетчик)
 app.post('/api/admin/add-yesterday', (req, res) => {
     const { service } = req.body;
     if (queueData.pending[service] !== undefined) {
@@ -138,9 +121,13 @@ app.post('/api/admin/add-yesterday', (req, res) => {
     }
 });
 
-// 4. Админ: Готово к выдаче для ОБЫЧНОЙ машины (+ отправка WhatsApp с ценой)
+// Завершение работы
 app.post('/api/admin/complete', async (req, res) => {
-    const { service, id, price } = req.body;
+    const { service, id, workPrice, partsPrice } = req.body;
+
+    const work = parseInt(workPrice) || 0;
+    const parts = parseInt(partsPrice) || 0;
+    const totalPrice = work + parts;
 
     if (queueData.list[service]) {
         const index = queueData.list[service].findIndex(item => item.id === id || String(item.pos) === String(id));
@@ -148,12 +135,28 @@ app.post('/api/admin/complete', async (req, res) => {
         if (index !== -1) {
             const [completedCar] = queueData.list[service].splice(index, 1);
             completedCar.completedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            completedCar.price = price ? `${price} ₸` : 'Уточняйте у мастера';
+            completedCar.workPrice = work;
+            completedCar.partsPrice = parts;
+            completedCar.totalPrice = totalPrice;
 
             queueData.completed[service].push(completedCar);
             recalculatePositions(service);
 
-            // 📩 Сообщение о готовности с ценой
+            // Сохранение в отчет админки
+            queueData.dailyReport.totalEarned += totalPrice;
+            queueData.dailyReport.workEarned += work;
+            queueData.dailyReport.partsEarned += parts;
+            queueData.dailyReport.history.push({
+                time: completedCar.completedTime,
+                brand: completedCar.brand,
+                carNum: completedCar.carNum,
+                service: service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE',
+                work,
+                parts,
+                total: totalPrice
+            });
+
+            // 📩 Сообщение клиенту (ТОЛЬКО ОБЩАЯ СУММА)
             const serviceName = service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
             const readyMsg =
                 `Здравствуйте, ${completedCar.name}! 👋
@@ -161,12 +164,12 @@ app.post('/api/admin/complete', async (req, res) => {
 ✅ *Ваш автомобиль готов к выдаче!*
 🚗 **${completedCar.brand}** (${completedCar.carNum})
 🛠 Услуга: [${serviceName}]
-💰 **К оплате:** ${completedCar.price}
 
-Вы можете приехать и забрать ваш автомобиль. Ждем вас! 🚘✨`;
+💰 **Сумма к оплате:** ${totalPrice.toLocaleString()} ₸
+
+Ждем вас! 🚘✨`;
 
             await sendWhatsAppNotification(completedCar.phone, readyMsg);
-
             return res.json({ success: true, queueData });
         }
     }
@@ -174,31 +177,50 @@ app.post('/api/admin/complete', async (req, res) => {
     res.status(400).json({ error: 'Машина не найдена' });
 });
 
-// 5. Админ: Готово к выдаче для ДЛИТЕЛЬНОЙ / ВЧЕРАШНЕЙ машины
+// Завершение вчерашней машины
 app.post('/api/admin/complete-yesterday', (req, res) => {
-    const { service, price } = req.body;
+    const { service, workPrice, partsPrice } = req.body;
+
+    const work = parseInt(workPrice) || 0;
+    const parts = parseInt(partsPrice) || 0;
+    const totalPrice = work + parts;
 
     if (queueData.pending[service] > 0) {
         queueData.pending[service] -= 1;
         recalculatePositions(service);
 
-        const formattedPrice = price ? `${price} ₸` : 'Уточняйте у мастера';
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const completedCar = {
             id: 'yesterday_' + Date.now(),
             brand: 'Длительный / Вчерашний ремонт',
             carNum: 'ПРИОРИТЕТ',
-            price: formattedPrice,
-            completedTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            workPrice: work,
+            partsPrice: parts,
+            totalPrice: totalPrice,
+            completedTime: timeStr
         };
 
         queueData.completed[service].push(completedCar);
+
+        queueData.dailyReport.totalEarned += totalPrice;
+        queueData.dailyReport.workEarned += work;
+        queueData.dailyReport.partsEarned += parts;
+        queueData.dailyReport.history.push({
+            time: timeStr,
+            brand: 'Длительный ремонт',
+            carNum: 'ПРИОРИТЕТ',
+            service: service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE',
+            work,
+            parts,
+            total: totalPrice
+        });
+
         return res.json({ success: true, queueData });
     }
 
     res.status(400).json({ error: 'Нет длительных машин' });
 });
 
-// 6. Админ: Удалить из списка готовых (после выдачи ключей)
 app.post('/api/admin/remove-completed', (req, res) => {
     const { service, carNum } = req.body;
     if (queueData.completed[service]) {
@@ -209,5 +231,5 @@ app.post('/api/admin/remove-completed', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Сервер Nazirjon ECU запущен на порту ${PORT}`);
+    console.log(`🚀 Сервер Nazirjon Performance запущен на порту ${PORT}`);
 });

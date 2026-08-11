@@ -3,13 +3,47 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nazirjon ECU - Панель Администратора</title>
+  <title>Nazirjon Performance - Панель Администратора</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-    body { background-color: #0a0a0a; color: #fff; padding: 20px; display: flex; justify-content: center; }
-    .container { width: 100%; max-width: 650px; }
-    h1 { text-align: center; color: #e60000; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+    body { background-color: #0a0a0a; color: #fff; padding: 15px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 680px; }
+    h1 { text-align: center; color: #e60000; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; font-size: 1.4rem; }
 
+    /* ВКЛАДКИ (TABS) */
+    .tabs-nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      background: #141414;
+      padding: 6px;
+      border-radius: 12px;
+      border: 1px solid #262626;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px;
+      background: transparent;
+      border: none;
+      color: #888;
+      font-weight: bold;
+      font-size: 0.95rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+      text-align: center;
+    }
+    .tab-btn.active {
+      background: #e60000;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(230, 0, 0, 0.4);
+    }
+
+    /* СОДЕРЖИМОЕ ВКЛАДОК */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* КНОПКИ И БЛОКИ */
     .btn-add {
       width: 100%;
       padding: 12px;
@@ -28,9 +62,9 @@
     .board-column {
       background: #141414;
       border: 1px solid #262626;
-      padding: 18px;
+      padding: 16px;
       border-radius: 12px;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
     .board-title {
       text-align: center;
@@ -66,35 +100,109 @@
     }
     .btn-complete { background: #00e676; color: #000; }
     .btn-delete { background: #ff3333; color: #fff; }
+
+    /* СТИЛИ ВКЛАДКИ ОТЧЕТОВ */
+    .report-box {
+      background: #181818;
+      border: 1px solid #333;
+      padding: 15px;
+      border-radius: 12px;
+    }
+    .report-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+      background: #222;
+      padding: 15px;
+      border-radius: 10px;
+    }
+    .stat-item { text-align: center; }
+    .stat-val { font-size: 1.1rem; font-weight: bold; color: #00e676; margin-bottom: 4px; }
+    .stat-lbl { font-size: 0.7rem; color: #aaa; text-transform: uppercase; }
+
+    .report-row {
+      font-size: 0.88rem;
+      padding: 12px 0;
+      border-bottom: 1px dashed #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>Nazirjon ECU - Админка</h1>
+  <h1>Nazirjon Performance</h1>
 
-  <div class="board-column">
-    <div class="board-title">💉 INJECTOR PRO</div>
-    <button class="btn-add" onclick="addYesterday('injector')">➕ Добавить долгий/вчерашний ремонт</button>
-    <div id="pendingInjectorBox"></div>
-    <div id="listInjector"></div>
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('queueTab', this)">🚗 Очередь и Готовые</button>
+    <button class="tab-btn" onclick="switchTab('reportTab', this)">📊 Отчёты и Касса</button>
   </div>
 
-  <div class="board-column">
-    <div class="board-title">💻 ECU PERFORMANCE</div>
-    <button class="btn-add" onclick="addYesterday('ecu')">➕ Добавить долгий/вчерашний ремонт</button>
-    <div id="pendingECUBox"></div>
-    <div id="listECU"></div>
+  <div id="queueTab" class="tab-content active">
+
+    <div class="board-column">
+      <div class="board-title">💉 INJECTOR PRO</div>
+      <button class="btn-add" onclick="addYesterday('injector')">➕ Добавить долгий/вчерашний ремонт</button>
+      <div id="pendingInjectorBox"></div>
+      <div id="listInjector"></div>
+    </div>
+
+    <div class="board-column">
+      <div class="board-title">💻 ECU PERFORMANCE</div>
+      <button class="btn-add" onclick="addYesterday('ecu')">➕ Добавить долгий/вчерашний ремонт</button>
+      <div id="pendingECUBox"></div>
+      <div id="listECU"></div>
+    </div>
+
+    <div class="board-column" style="border-color: #00e676;">
+      <div class="board-title" style="color: #00e676; border-color: #00e676;">✅ ГОТОВЫЕ АВТО (ОЖИДАЮТ ВЫДАЧИ)</div>
+      <div id="listCompleted"></div>
+    </div>
+
   </div>
 
-  <div class="board-column" style="border-color: #00e676;">
-    <div class="board-title" style="color: #00e676; border-color: #00e676;">✅ ГОТОВЫЕ АВТО (ОЖИДАЮТ ВЫДАЧИ)</div>
-    <div id="listCompleted"></div>
+  <div id="reportTab" class="tab-content">
+    <div class="board-column" style="border-color: #ff9900;">
+      <div class="board-title" style="color: #ff9900; border-color: #ff9900;">📊 КАССОВЫЙ ОТЧЁТ ЗА СЕГОДНЯ</div>
+
+      <div class="report-box">
+        <div class="report-stats">
+          <div class="stat-item">
+            <div class="stat-val" id="repTotal">0 ₸</div>
+            <div class="stat-lbl">Общая касса</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val" style="color: #3399ff;" id="repWork">0 ₸</div>
+            <div class="stat-lbl">Услуги</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val" style="color: #ffcc00;" id="repParts">0 ₸</div>
+            <div class="stat-lbl">Запчасти</div>
+          </div>
+        </div>
+
+        <div style="font-weight: bold; font-size: 0.95rem; margin-bottom: 10px; color: #fff;">История расчётов за сегодня:</div>
+        <div id="reportHistory"></div>
+      </div>
+    </div>
   </div>
+
 </div>
 
 <script>
   const SERVER_URL = 'https://nazirjon-queue.onrender.com';
+
+  // Функция переключения вкладок
+  function switchTab(tabId, btnElement) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+    document.getElementById(tabId).classList.add('active');
+    btnElement.classList.add('active');
+  }
 
   async function loadAdminData() {
     try {
@@ -107,8 +215,9 @@
       renderList('Injector', data.list.injector, 'injector');
       renderList('ECU', data.list.ecu, 'ecu');
       renderCompleted(data.completed);
+      renderReport(data.dailyReport);
     } catch (e) {
-      console.error('Ошибка:', e);
+      console.error('Ошибка загрузки данных:', e);
     }
   }
 
@@ -118,7 +227,7 @@
       container.innerHTML = `
         <div class="card card-yesterday">
           <div>
-            <div style="font-weight:bold; color:#ff4d4d;">⚠️ Длительные/Вчерашние ремонты: ${count}</div>
+            <div style="font-weight:bold; color:#ff4d4d;">⚠️ Вчерашние ремонты: ${count}</div>
             <div style="font-size:0.85rem; color:#aaa;">В приоритетном списке</div>
           </div>
           <button class="action-btn btn-complete" onclick="markYesterdayComplete('${service}')">🚗 Готово к выдаче</button>
@@ -167,8 +276,8 @@
               <div class="card card-completed">
                   <div>
                       <div style="font-weight:bold; color:#fff;">${item.brand} <span style="color:#00e676;">(${item.carNum})</span></div>
-                      <div style="font-size:0.85rem; color:#aaa;">Услуга: ${s.toUpperCase()}</div>
-                      <div style="font-size:0.9rem; color:#00e676; font-weight:bold; margin-top:2px;">К оплате: ${item.price}</div>
+                      <div style="font-size:0.8rem; color:#aaa;">Работа: ${(item.workPrice || 0).toLocaleString()} ₸ | Запчасти: ${(item.partsPrice || 0).toLocaleString()} ₸</div>
+                      <div style="font-size:0.9rem; color:#00e676; font-weight:bold; margin-top:2px;">Итого: ${(item.totalPrice || 0).toLocaleString()} ₸</div>
                   </div>
                   <button class="action-btn btn-delete" onclick="removeCompleted('${s}', '${item.carNum}')">❌ Удалить</button>
               </div>
@@ -183,26 +292,59 @@
     }
   }
 
+  function renderReport(rep) {
+    if (!rep) return;
+
+    document.getElementById('repTotal').innerText = `${rep.totalEarned.toLocaleString()} ₸`;
+    document.getElementById('repWork').innerText = `${rep.workEarned.toLocaleString()} ₸`;
+    document.getElementById('repParts').innerText = `${rep.partsEarned.toLocaleString()} ₸`;
+
+    const container = document.getElementById('reportHistory');
+    container.innerHTML = '';
+
+    if (rep.history && rep.history.length > 0) {
+      rep.history.slice().reverse().forEach(h => {
+        container.innerHTML += `
+          <div class="report-row">
+            <div>
+              <strong style="color:#fff;">${h.time}</strong> — ${h.brand} <span style="color:#aaa;">(${h.carNum})</span>
+              <div style="color:#888; font-size:0.75rem; margin-top:2px;">Услуги: ${h.work.toLocaleString()} ₸ | Детали: ${h.parts.toLocaleString()} ₸</div>
+            </div>
+            <div style="font-weight:bold; color:#00e676; font-size:0.95rem;">${h.total.toLocaleString()} ₸</div>
+          </div>
+        `;
+      });
+    } else {
+      container.innerHTML = '<div style="color:#666; font-size:0.85rem; text-align:center; padding:15px;">Сегодня расчётов ещё не было</div>';
+    }
+  }
+
   async function markComplete(service, id) {
-    const price = prompt('Введите стоимость ремонта (в тенге):', '25000');
-    if (price === null) return;
+    const workPrice = prompt('Стоимость работы / услуги (₸):', '20000');
+    if (workPrice === null) return;
+
+    const partsPrice = prompt('Стоимость запчасти (₸, если нет — 0):', '5000');
+    if (partsPrice === null) return;
 
     await fetch(`${SERVER_URL}/api/admin/complete`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ service, id, price })
+      body: JSON.stringify({ service, id, workPrice, partsPrice })
     });
     loadAdminData();
   }
 
   async function markYesterdayComplete(service) {
-    const price = prompt('Введите стоимость ремонта длительной машины (в тенге):', '25000');
-    if (price === null) return;
+    const workPrice = prompt('Стоимость работы для вчерашней машины (₸):', '20000');
+    if (workPrice === null) return;
+
+    const partsPrice = prompt('Стоимость запчасти (₸, если нет — 0):', '5000');
+    if (partsPrice === null) return;
 
     await fetch(`${SERVER_URL}/api/admin/complete-yesterday`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ service, price })
+      body: JSON.stringify({ service, workPrice, partsPrice })
     });
     loadAdminData();
   }

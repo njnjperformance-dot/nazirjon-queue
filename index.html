@@ -3,268 +3,138 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nazirjon ECU Performance - Запись в очередь</title>
+  <title>Nazirjon Performance - Электронная Очередь</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-    body { background-color: #0a0a0a; color: #fff; padding: 20px; display: flex; justify-content: center; }
-    .container { width: 100%; max-width: 600px; }
-    h1 { text-align: center; color: #e60000; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+    body { background-color: #0a0a0a; color: #fff; padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 480px; background: #141414; border: 1px solid #262626; padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
 
-    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-    .tab-btn { flex: 1; padding: 12px; background: #1a1a1a; border: 1px solid #333; color: #fff; font-weight: bold; cursor: pointer; border-radius: 8px; text-align: center; font-size: 0.9rem; }
-    .tab-btn.active { background: #e60000; border-color: #e60000; }
+    h1 { text-align: center; color: #e60000; font-size: 1.5rem; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+    .subtitle { text-align: center; color: #aaa; font-size: 0.85rem; margin-bottom: 20px; }
 
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
+    /* КАРТОЧКИ ИНСТРУКЦИИ */
+    .step-card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+    .step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .step-num { background: #e60000; color: #fff; font-weight: bold; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .step-title { font-weight: bold; font-size: 1rem; color: #fff; }
+    .step-desc { font-size: 0.88rem; color: #ccc; line-height: 1.4; padding-left: 38px; }
 
-    form { background: #141414; padding: 20px; border-radius: 12px; border: 1px solid #262626; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; margin-bottom: 5px; color: #aaa; font-size: 0.9rem; }
-    input, select { width: 100%; padding: 12px; background: #222; border: 1px solid #333; color: #fff; border-radius: 6px; font-size: 1rem; }
+    /* КНОПКИ И ФОРМА */
+    .btn { width: 100%; padding: 15px; background: #e60000; color: #fff; border: none; font-weight: bold; font-size: 1rem; border-radius: 10px; cursor: pointer; text-transform: uppercase; transition: 0.2s; margin-top: 10px; }
+    .btn:hover { background: #ff0000; }
+
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 5px; }
+    input, select { width: 100%; padding: 12px; background: #222; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 0.95rem; }
     input:focus, select:focus { border-color: #e60000; outline: none; }
-    button.submit-btn { width: 100%; padding: 14px; background: #e60000; border: none; color: #fff; font-weight: bold; font-size: 1.1rem; border-radius: 6px; cursor: pointer; margin-top: 10px; }
 
-    .alert { padding: 12px; border-radius: 6px; margin-bottom: 15px; display: none; font-size: 0.9rem; }
-    .alert-danger { background: #330000; color: #ff4d4d; border: 1px solid #800000; }
-    .alert-success { background: #003300; color: #4dff4d; border: 1px solid #008000; }
-
-    .board-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
-    .board-column { background: #141414; border: 1px solid #262626; padding: 15px; border-radius: 12px; }
-    .board-title { text-align: center; font-size: 1.2rem; font-weight: bold; padding-bottom: 10px; border-bottom: 2px solid #e60000; margin-bottom: 10px; }
+    #formStep { display: none; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>Nazirjon ECU</h1>
+  <h1>Nazirjon Performance</h1>
+  <div class="subtitle">Электронная живая очередь</div>
 
-  <div class="tabs">
-    <div class="tab-btn active" onclick="switchTab('booking')">📝 Запись</div>
-    <div class="tab-btn" onclick="switchTab('board')">📺 Очередь</div>
-    <div class="tab-btn" onclick="switchTab('completed')">🏁 Готовые</div>
+  <div id="instructionStep">
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div class="step-title">Правильная парковка</div>
+      </div>
+      <div class="step-desc">
+        Припаркуйте автомобиль строго вдоль линии, не перекрывая въезд другим машинам и соседние ворота.
+      </div>
+    </div>
+
+    <div class="step-card" style="border-color: #e60000;">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div class="step-title" style="color: #ff4d4d;">Приём авто: 08:50 – 09:00</div>
+      </div>
+      <div class="step-desc">
+        Вы должны находиться <strong>у ворот возле своего автомобиля</strong>. Если при выходе мастера в 09:00 вас нет у машины — <strong>очередь аннулируется</strong>.
+      </div>
+    </div>
+
+    <button class="btn" onclick="goToForm()">Я на месте, перейти к записи ➔</button>
   </div>
 
-  <div id="bookingTab" class="tab-content active">
-    <div id="msgError" class="alert alert-danger"></div>
-    <div id="msgSuccess" class="alert alert-success"></div>
-
-    <form id="bookingForm">
-      <div class="form-group">
-        <label>Ваше Имя:</label>
-        <input type="text" id="clientName" required placeholder="Введите ваше имя">
-      </div>
+  <div id="formStep">
+    <form id="queueForm">
       <div class="form-group">
         <label>Выберите услугу:</label>
-        <select id="service">
-          <option value="injector">💉 INJECTOR PRO</option>
-          <option value="ecu">💻 ECU PERFORMANCE</option>
+        <select id="service" required>
+          <option value="injector">💉 INJECTOR PRO (Форсунки)</option>
+          <option value="ecu">💻 ECU PERFORMANCE (ЭБУ / Чип)</option>
         </select>
       </div>
+
       <div class="form-group">
-        <label>Марка и модель авто:</label>
-        <input type="text" id="brand" required placeholder="Например: Mercedes W124">
+        <label>Ваше Имя:</label>
+        <input type="text" id="name" placeholder="Например: Алишер" required>
       </div>
+
       <div class="form-group">
-        <label>Госномер авто:</label>
-        <input type="text" id="carNum" required placeholder="Например: 777 AAA 01">
+        <label>Марка автомобиля:</label>
+        <input type="text" id="brand" placeholder="Например: Toyota Camry" required>
       </div>
+
       <div class="form-group">
-        <label>Номер телефона (WhatsApp):</label>
-        <input type="tel" id="phone" required placeholder="77001112233">
+        <label>Гос. номер авто:</label>
+        <input type="text" id="carNum" placeholder="Например: 777 AAA 02" required>
       </div>
-      <button type="submit" class="submit-btn">Встать в очередь</button>
+
+      <div class="form-group">
+        <label>Номер WhatsApp:</label>
+        <input type="tel" id="phone" placeholder="87071234567" required>
+      </div>
+
+      <button type="submit" class="btn">Занять место в очереди 🚘</button>
     </form>
-  </div>
-
-  <div id="boardTab" class="tab-content">
-    <div class="board-grid">
-      <div class="board-column">
-        <div class="board-title">💉 INJECTOR PRO</div>
-        <div id="queueInjector">
-          <p style="color:#666; text-align:center; padding:10px;">Загрузка...</p>
-        </div>
-      </div>
-
-      <div class="board-column">
-        <div class="board-title">💻 ECU PERFORMANCE</div>
-        <div id="queueECU">
-          <p style="color:#666; text-align:center; padding:10px;">Загрузка...</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="completedTab" class="tab-content">
-    <div class="board-column" style="border-color: #00e676;">
-      <div class="board-title" style="color: #00e676; border-color: #00e676;">✅ ГОТОВЫ К ВЫДАЧЕ</div>
-      <div id="queueCompleted">
-        <p style="color:#666; text-align:center; padding:10px;">Готовых машин пока нет</p>
-      </div>
-    </div>
   </div>
 </div>
 
 <script>
   const SERVER_URL = 'https://nazirjon-queue.onrender.com';
-  const BLACKLIST = ['matiz', 'daewoo matiz', 'chery', 'lifan', 'byd'];
-  const WA_PHONES = { injector: '77067122121', ecu: '77066061525' };
 
-  function switchTab(tabName) {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
-    if (tabName === 'booking') {
-      document.querySelectorAll('.tab-btn')[0].classList.add('active');
-      document.getElementById('bookingTab').classList.add('active');
-    } else if (tabName === 'board') {
-      document.querySelectorAll('.tab-btn')[1].classList.add('active');
-      document.getElementById('boardTab').classList.add('active');
-      loadPublicQueue();
-    } else {
-      document.querySelectorAll('.tab-btn')[2].classList.add('active');
-      document.getElementById('completedTab').classList.add('active');
-      loadPublicQueue();
-    }
+  function goToForm() {
+    document.getElementById('instructionStep').style.display = 'none';
+    document.getElementById('formStep').style.display = 'block';
   }
 
-  async function loadPublicQueue() {
-    try {
-      const res = await fetch(`${SERVER_URL}/api/queue`);
-      const data = await res.json();
-      renderPublicQueue(data);
-    } catch (e) {
-      console.error('Ошибка загрузки очереди:', e);
-    }
-  }
-
-  function renderPublicQueue(data) {
-    // 1. Отрисовка активной очереди
-    ['injector', 'ecu'].forEach(s => {
-      const containerId = s === 'injector' ? 'queueInjector' : 'queueECU';
-      const container = document.getElementById(containerId);
-      if (!container) return;
-
-      container.innerHTML = '';
-      let hasItems = false;
-
-      // Вчерашние машины
-      if (data.pending && data.pending[s] > 0) {
-        for (let i = 1; i <= data.pending[s]; i++) {
-          hasItems = true;
-          container.innerHTML += `
-                        <div style="background:#1a0000; border:1px solid #ff4d4d; margin-top:10px; padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-                            <div>
-                                <div style="font-weight:bold; color:#ff4d4d;">⚠️ Машина с прошлого дня</div>
-                                <div style="font-size:0.85rem; color:#aaa;">Приоритетный прием</div>
-                            </div>
-                            <span style="font-size:1.3rem; font-weight:bold; color:#ff4d4d; border:1px solid #ff4d4d; padding:4px 10px; border-radius:6px;">№${i}</span>
-                        </div>`;
-        }
-      }
-
-      // Обычные записи
-      if (data.list && data.list[s] && data.list[s].length > 0) {
-        data.list[s].forEach(item => {
-          hasItems = true;
-          container.innerHTML += `
-                        <div style="background:#222; border:1px solid #333; margin-top:10px; padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-                            <div>
-                                <div style="font-weight:bold; color:#fff;">${item.brand} <span style="color:#e60000;">(${item.carNum})</span></div>
-                                <div style="font-size:0.85rem; color:#aaa;">Клиент: ${item.name}</div>
-                            </div>
-                            <span style="font-size:1.3rem; font-weight:bold; color:#e60000; border:1px solid #e60000; padding:4px 10px; border-radius:6px;">№${item.pos}</span>
-                        </div>`;
-        });
-      }
-
-      if (!hasItems) {
-        container.innerHTML = '<p style="color:#666; text-align:center; padding:15px; font-size:0.9rem;">Очередь пуста</p>';
-      }
-    });
-
-    // 2. Отрисовка готовых авто
-    const completedContainer = document.getElementById('queueCompleted');
-    if (completedContainer) {
-      completedContainer.innerHTML = '';
-      let hasCompleted = false;
-
-      ['injector', 'ecu'].forEach(s => {
-        if (data.completed && data.completed[s] && data.completed[s].length > 0) {
-          data.completed[s].forEach(item => {
-            hasCompleted = true;
-            completedContainer.innerHTML += `
-                            <div style="background:#002411; border:1px solid #00e676; margin-top:10px; padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-                                <div>
-                                    <div style="font-weight:bold; color:#fff;">${item.brand} <span style="color:#00e676;">(${item.carNum})</span></div>
-                                    <div style="font-size:0.85rem; color:#aaa;">Услуга: ${s.toUpperCase()}</div>
-                                    <div style="font-size:0.9rem; color:#00e676; font-weight:bold; margin-top:2px;">К оплате: ${item.price}</div>
-                                </div>
-                                <span style="font-size:1rem; font-weight:bold; color:#00e676; border:1px solid #00e676; padding:4px 8px; border-radius:6px;">ГОТОВО</span>
-                            </div>`;
-          });
-        }
-      });
-
-      if (!hasCompleted) {
-        completedContainer.innerHTML = '<p style="color:#666; text-align:center; padding:15px; font-size:0.9rem;">Готовых машин пока нет</p>';
-      }
-    }
-  }
-
-  setInterval(loadPublicQueue, 3000);
-  loadPublicQueue();
-
-  // Обработка формы записи
-  document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+  document.getElementById('queueForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const err = document.getElementById('msgError');
-    const succ = document.getElementById('msgSuccess');
-    err.style.display = 'none'; succ.style.display = 'none';
-
-    const name = document.getElementById('clientName').value.trim();
-    const service = document.getElementById('service').value;
-    const brand = document.getElementById('brand').value.trim();
-    const carNum = document.getElementById('carNum').value.trim();
-    const phone = document.getElementById('phone').value.trim();
-
-    if (service === 'injector' && BLACKLIST.some(b => brand.toLowerCase().includes(b))) {
-      err.innerText = `К сожалению, по направлению Инжектор марку "${brand}" мы не обслуживаем.`;
-      err.style.display = 'block';
-      return;
-    }
+    const data = {
+      service: document.getElementById('service').value,
+      name: document.getElementById('name').value,
+      brand: document.getElementById('brand').value,
+      carNum: document.getElementById('carNum').value,
+      phone: document.getElementById('phone').value
+    };
 
     try {
-      await fetch(`${SERVER_URL}/api/register`, {
+      const res = await fetch(`${SERVER_URL}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, service, brand, carNum, phone })
+        body: JSON.stringify(data)
       });
-    } catch (e) {}
 
-    succ.innerText = `✅ Вы успешно записались! Переходим в WhatsApp...`;
-    succ.style.display = 'block';
+      const result = await res.json();
 
-    let questionText = service === 'injector'
-            ? 'Подскажите, возьмете ли эту комплектацию/мотор в работу?'
-            : 'Подскажите, сможете ли диагностировать и устранить эту проблему с ЭБУ / электрикой?';
-
-    let serviceName = service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
-    const waNumber = WA_PHONES[service];
-    const messageText = encodeURIComponent(
-            `Здравствуйте! Я записался через NFC на [${serviceName}].\n` +
-            `Имя: ${name}\n🚗 Авто: ${brand}\n🔢 Госномер: ${carNum}\n\n` +
-            `${questionText}`
-    );
-
-    setTimeout(() => {
-      window.location.href = `https://wa.me/${waNumber}?text=${messageText}`;
-    }, 1200);
-
-    this.reset();
-    loadPublicQueue();
+      if (result.success) {
+        alert(`✅ Поздравляем, ${data.name}!\nВы успешно записаны под №${result.pos}.\nПодтверждение отправлено вам в WhatsApp.`);
+        location.reload();
+      } else {
+        alert('Ошибка: ' + (result.error || 'Не удалось записаться'));
+      }
+    } catch (err) {
+      alert('Ошибка подключения к серверу.');
+    }
   });
 </script>
-
 </body>
 </html>
