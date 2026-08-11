@@ -6,29 +6,89 @@
   <title>Nazirjon Performance - Электронная Очередь</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-    body { background-color: #0a0a0a; color: #fff; padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-    .container { width: 100%; max-width: 480px; background: #141414; border: 1px solid #262626; padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+    body {
+      background-color: #0a0a0a;
+      color: #fff;
+      padding: 15px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+    .container { width: 100%; max-width: 480px; background: #141414; border: 1px solid #262626; padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); margin-top: 10px; }
 
-    h1 { text-align: center; color: #e60000; font-size: 1.5rem; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-    .subtitle { text-align: center; color: #aaa; font-size: 0.85rem; margin-bottom: 20px; }
+    h1 { text-align: center; color: #e60000; font-size: 1.4rem; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 1px; }
+    .subtitle { text-align: center; color: #aaa; font-size: 0.8rem; margin-bottom: 18px; }
 
-    /* КАРТОЧКИ ИНСТРУКЦИИ */
-    .step-card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+    /* ЭКРАН 1: ПРАВИЛА (ПО УМОЛЧАНИЮ) */
+    #rulesScreen { display: block; }
+
+    .step-card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
     .step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
     .step-num { background: #e60000; color: #fff; font-weight: bold; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
     .step-title { font-weight: bold; font-size: 1rem; color: #fff; }
     .step-desc { font-size: 0.88rem; color: #ccc; line-height: 1.4; padding-left: 38px; }
 
-    /* КНОПКИ И ФОРМА */
-    .btn { width: 100%; padding: 15px; background: #e60000; color: #fff; border: none; font-weight: bold; font-size: 1rem; border-radius: 10px; cursor: pointer; text-transform: uppercase; transition: 0.2s; margin-top: 10px; }
-    .btn:hover { background: #ff0000; }
+    /* ЭКРАН 2: ОСНОВНОЙ С ВКЛАДКАМИ (СКРЫТ) */
+    #mainScreen { display: none; }
 
-    .form-group { margin-bottom: 14px; }
-    label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 5px; }
-    input, select { width: 100%; padding: 12px; background: #222; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 0.95rem; }
+    .tabs-nav {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 18px;
+      background: #1c1c1c;
+      padding: 5px;
+      border-radius: 10px;
+      border: 1px solid #2a2a2a;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px 4px;
+      background: transparent;
+      border: none;
+      color: #888;
+      font-weight: bold;
+      font-size: 0.8rem;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: 0.2s;
+      text-align: center;
+    }
+    .tab-btn.active {
+      background: #e60000;
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(230, 0, 0, 0.4);
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ФОРМА И КНОПКИ */
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 0.82rem; color: #aaa; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 11px; background: #222; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 0.9rem; }
     input:focus, select:focus { border-color: #e60000; outline: none; }
 
-    #formStep { display: none; }
+    .btn { width: 100%; padding: 14px; background: #e60000; color: #fff; border: none; font-weight: bold; font-size: 0.95rem; border-radius: 9px; cursor: pointer; text-transform: uppercase; transition: 0.2s; margin-top: 10px; }
+    .btn:hover { background: #ff0000; }
+
+    /* СПИСКИ */
+    .section-title { font-size: 0.9rem; font-weight: bold; color: #ff9900; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .queue-list { background: #181818; border: 1px solid #282828; border-radius: 10px; padding: 8px; margin-bottom: 14px; }
+    .queue-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #222; font-size: 0.85rem; }
+    .queue-item:last-child { border-bottom: none; }
+    .queue-pos { font-weight: bold; color: #e60000; width: 28px; }
+    .queue-car { font-weight: 500; color: #eee; flex-grow: 1; }
+    .queue-num { color: #888; font-size: 0.78rem; }
+
+    .completed-box { background: #001a0d; border: 1px solid #00e676; border-radius: 10px; padding: 10px; }
+    .completed-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; font-size: 0.88rem; color: #00e676; }
+
+    .location-status { text-align: center; font-size: 0.8rem; color: #ffcc00; margin-top: 10px; line-height: 1.3; }
   </style>
 </head>
 <body>
@@ -37,8 +97,7 @@
   <h1>Nazirjon Performance</h1>
   <div class="subtitle">Электронная живая очередь</div>
 
-  <div id="instructionStep">
-
+  <div id="rulesScreen">
     <div class="step-card">
       <div class="step-header">
         <div class="step-num">1</div>
@@ -59,62 +118,240 @@
       </div>
     </div>
 
-    <button class="btn" onclick="goToForm()">Я на месте, перейти к записи ➔</button>
+    <button class="btn" onclick="acceptRules()">Я ознакомился, перейти далее ➔</button>
   </div>
 
-  <div id="formStep">
-    <form id="queueForm">
-      <div class="form-group">
-        <label>Выберите услугу:</label>
-        <select id="service" required>
-          <option value="injector">💉 INJECTOR PRO (Форсунки)</option>
-          <option value="ecu">💻 ECU PERFORMANCE (ЭБУ / Чип)</option>
-        </select>
+  <div id="mainScreen">
+
+    <div class="tabs-nav">
+      <button class="tab-btn active" onclick="switchTab('formTab', this)">📝 Запись</button>
+      <button class="tab-btn" onclick="switchTab('queueTab', this)">🚗 Очередь</button>
+      <button class="tab-btn" onclick="switchTab('completedTab', this)">✅ Готовые</button>
+    </div>
+
+    <div id="formTab" class="tab-content active">
+      <form id="queueForm">
+        <div class="form-group">
+          <label>Выберите услугу:</label>
+          <select id="service" required>
+            <option value="injector">💉 INJECTOR PRO (Форсунки)</option>
+            <option value="ecu">💻 ECU PERFORMANCE (ЭБУ / Чип)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Ваше Имя:</label>
+          <input type="text" id="name" placeholder="Например: Алишер" required>
+        </div>
+
+        <div class="form-group">
+          <label>Марка автомобиля:</label>
+          <input type="text" id="brand" placeholder="Например: Toyota Camry" required>
+        </div>
+
+        <div class="form-group">
+          <label>Гос. номер авто:</label>
+          <input type="text" id="carNum" placeholder="Например: 777 AAA 02" required>
+        </div>
+
+        <div class="form-group">
+          <label>Ваш номер WhatsApp:</label>
+          <input type="tel" id="phone" placeholder="87071234567" required>
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">Занять место в очереди 🚘</button>
+        <div class="location-status" id="locationStatus">📍 Проверка вашей геолокации...</div>
+      </form>
+    </div>
+
+    <div id="queueTab" class="tab-content">
+      <div class="section-title">💉 INJECTOR PRO</div>
+      <div class="queue-list" id="listInjector">
+        <p style="color:#666; text-align:center; font-size:0.8rem;">Загрузка очереди...</p>
       </div>
 
-      <div class="form-group">
-        <label>Ваше Имя:</label>
-        <input type="text" id="name" placeholder="Например: Алишер" required>
+      <div class="section-title" style="color: #3399ff;">💻 ECU PERFORMANCE</div>
+      <div class="queue-list" id="listECU">
+        <p style="color:#666; text-align:center; font-size:0.8rem;">Загрузка очереди...</p>
       </div>
+    </div>
 
-      <div class="form-group">
-        <label>Марка автомобиля:</label>
-        <input type="text" id="brand" placeholder="Например: Toyota Camry" required>
+    <div id="completedTab" class="tab-content">
+      <div class="section-title" style="color: #00e676;">✅ ГОТОВЫЕ АВТО К ВЫДАЧЕ</div>
+      <div class="completed-box" id="listCompleted">
+        <p style="color:#008040; text-align:center; font-size:0.8rem;">Готовых авто пока нет</p>
       </div>
+    </div>
 
-      <div class="form-group">
-        <label>Гос. номер авто:</label>
-        <input type="text" id="carNum" placeholder="Например: 777 AAA 02" required>
-      </div>
-
-      <div class="form-group">
-        <label>Номер WhatsApp:</label>
-        <input type="tel" id="phone" placeholder="87071234567" required>
-      </div>
-
-      <button type="submit" class="btn">Занять место в очереди 🚘</button>
-    </form>
   </div>
+
 </div>
 
 <script>
   const SERVER_URL = 'https://nazirjon-queue.onrender.com';
+  const MASTER_WHATSAPP_NUMBER = '77071234567'; // Ваш номер WhatsApp
 
-  function goToForm() {
-    document.getElementById('instructionStep').style.display = 'none';
-    document.getElementById('formStep').style.display = 'block';
+  // ==========================================
+  // GPS КООРДИНАТЫ ВОРОТ (ул. Амира Темира, 208)
+  // ==========================================
+  const TARGET_LAT = 42.303510;
+  const TARGET_LON = 69.779682;
+  const MAX_DISTANCE_METERS = 50; // Допустимый радиус 50 метров
+
+  let isLocationValid = false;
+
+  // Формула расчета расстояния в метрах (Гаверсинус)
+  function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
   }
 
+  // Проверка геолокации
+  function checkLocation() {
+    const statusDiv = document.getElementById('locationStatus');
+
+    if (!navigator.geolocation) {
+      statusDiv.innerHTML = "❌ Ваш смартфон не поддерживает GPS";
+      isLocationValid = false;
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const userLat = position.coords.latitude;
+              const userLon = position.coords.longitude;
+
+              const distance = getDistanceFromLatLonInMeters(userLat, userLon, TARGET_LAT, TARGET_LON);
+
+              if (distance <= MAX_DISTANCE_METERS) {
+                statusDiv.style.color = "#00e676";
+                statusDiv.innerHTML = `📍 Вы у ворот (${Math.round(distance)}м). Запись разрешена!`;
+                isLocationValid = true;
+              } else {
+                statusDiv.style.color = "#ff3333";
+                statusDiv.innerHTML = `🚫 Запись доступна только у ворот сервиса!<br>(Расстояние: ${Math.round(distance)}м от ул. Амира Темира, 208)`;
+                isLocationValid = false;
+              }
+            },
+            (error) => {
+              statusDiv.style.color = "#ff9900";
+              statusDiv.innerHTML = "⚠️ Пожалуйста, разрешите доступ к GPS на вашем телефоне!";
+              isLocationValid = false;
+            },
+            { enableHighAccuracy: true }
+    );
+  }
+
+  function acceptRules() {
+    document.getElementById('rulesScreen').style.display = 'none';
+    document.getElementById('mainScreen').style.display = 'block';
+    checkLocation();
+  }
+
+  function switchTab(tabId, btnElement) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+    document.getElementById(tabId).classList.add('active');
+    btnElement.classList.add('active');
+
+    if (tabId === 'queueTab' || tabId === 'completedTab') {
+      loadPublicQueue();
+    }
+  }
+
+  async function loadPublicQueue() {
+    try {
+      const res = await fetch(`${SERVER_URL}/api/queue`);
+      const data = await res.json();
+
+      // INJECTOR PRO
+      const injBox = document.getElementById('listInjector');
+      injBox.innerHTML = '';
+      if (data.list && data.list.injector && data.list.injector.length > 0) {
+        data.list.injector.forEach(item => {
+          injBox.innerHTML += `
+            <div class="queue-item">
+              <span class="queue-pos">№${item.pos}</span>
+              <span class="queue-car">${item.brand}</span>
+              <span class="queue-num">${item.carNum}</span>
+            </div>
+          `;
+        });
+      } else {
+        injBox.innerHTML = '<p style="color:#666; text-align:center; font-size:0.8rem;">Очередь пуста</p>';
+      }
+
+      // ECU PERFORMANCE
+      const ecuBox = document.getElementById('listECU');
+      ecuBox.innerHTML = '';
+      if (data.list && data.list.ecu && data.list.ecu.length > 0) {
+        data.list.ecu.forEach(item => {
+          ecuBox.innerHTML += `
+            <div class="queue-item">
+              <span class="queue-pos">№${item.pos}</span>
+              <span class="queue-car">${item.brand}</span>
+              <span class="queue-num">${item.carNum}</span>
+            </div>
+          `;
+        });
+      } else {
+        ecuBox.innerHTML = '<p style="color:#666; text-align:center; font-size:0.8rem;">Очередь пуста</p>';
+      }
+
+      // ГОТОВЫЕ
+      const compBox = document.getElementById('listCompleted');
+      compBox.innerHTML = '';
+      let allCompleted = [];
+      if (data.completed) {
+        if (data.completed.injector) allCompleted.push(...data.completed.injector);
+        if (data.completed.ecu) allCompleted.push(...data.completed.ecu);
+      }
+
+      if (allCompleted.length > 0) {
+        allCompleted.forEach(item => {
+          compBox.innerHTML += `
+            <div class="completed-item">
+              <span>🚘 <strong>${item.brand}</strong> (${item.carNum})</span>
+              <span>ГОТОВ</span>
+            </div>
+          `;
+        });
+      } else {
+        compBox.innerHTML = '<p style="color:#008040; text-align:center; font-size:0.8rem;">Готовых авто пока нет</p>';
+      }
+
+    } catch (e) {
+      console.error('Ошибка загрузки очереди:', e);
+    }
+  }
+
+  // Защита и отправка формы
   document.getElementById('queueForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const data = {
-      service: document.getElementById('service').value,
-      name: document.getElementById('name').value,
-      brand: document.getElementById('brand').value,
-      carNum: document.getElementById('carNum').value,
-      phone: document.getElementById('phone').value
-    };
+    if (!isLocationValid) {
+      alert('🚫 Ошибка! Запись доступна только возле ворот сервиса (ул. Амира Темира, 208). Включите GPS.');
+      checkLocation();
+      return;
+    }
+
+    const serviceType = document.getElementById('service').value;
+    const serviceName = serviceType === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
+    const name = document.getElementById('name').value;
+    const brand = document.getElementById('brand').value;
+    const carNum = document.getElementById('carNum').value;
+    const phone = document.getElementById('phone').value;
+
+    const data = { service: serviceType, name, brand, carNum, phone };
+
+    let posNumber = '';
 
     try {
       const res = await fetch(`${SERVER_URL}/api/register`, {
@@ -124,17 +361,40 @@
       });
 
       const result = await res.json();
-
       if (result.success) {
-        alert(`✅ Поздравляем, ${data.name}!\nВы успешно записаны под №${result.pos}.\nПодтверждение отправлено вам в WhatsApp.`);
-        location.reload();
+        posNumber = result.pos;
       } else {
-        alert('Ошибка: ' + (result.error || 'Не удалось записаться'));
+        alert(result.error || 'Вы уже состоите в очереди!');
+        return;
       }
     } catch (err) {
-      alert('Ошибка подключения к серверу.');
+      console.warn('Сервер недоступен, открываем WhatsApp');
     }
+
+    // Сообщение для WhatsApp
+    let waMessage = `Здравствуйте! Я занял место в электронной очереди Nazirjon Performance.\n\n` +
+            `👤 Имя: ${name}\n` +
+            `🔧 Услуга: ${serviceName}\n` +
+            `🚘 Авто: ${brand}\n` +
+            `🔢 Гос. номер: ${carNum}\n` +
+            `📞 Телефон: ${phone}`;
+
+    if (posNumber) {
+      waMessage += `\n📍 Номер в очереди: №${posNumber}`;
+    }
+
+    const waUrl = `https://wa.me/${MASTER_WHATSAPP_NUMBER}?text=${encodeURIComponent(waMessage)}`;
+    window.location.href = waUrl;
   });
+
+  // Запрет контекстного меню (кликов)
+  document.addEventListener('contextmenu', event => event.preventDefault());
+
+  setInterval(() => {
+    if (document.getElementById('mainScreen').style.display === 'block') {
+      loadPublicQueue();
+    }
+  }, 5000);
 </script>
 </body>
 </html>
