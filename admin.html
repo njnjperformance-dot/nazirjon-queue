@@ -10,157 +10,39 @@
     .container { width: 100%; max-width: 680px; }
     h1 { text-align: center; color: #e60000; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; font-size: 1.4rem; }
 
-    /* ВКЛАДКИ */
-    .tabs-nav {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 15px;
-      background: #141414;
-      padding: 6px;
-      border-radius: 12px;
-      border: 1px solid #262626;
-    }
-    .tab-btn {
-      flex: 1;
-      padding: 12px;
-      background: transparent;
-      border: none;
-      color: #888;
-      font-weight: bold;
-      font-size: 0.95rem;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: 0.2s;
-      text-align: center;
-    }
-    .tab-btn.active {
-      background: #e60000;
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(230, 0, 0, 0.4);
-    }
+    .tabs-nav { display: flex; gap: 10px; margin-bottom: 15px; background: #141414; padding: 6px; border-radius: 12px; border: 1px solid #262626; }
+    .tab-btn { flex: 1; padding: 12px; background: transparent; border: none; color: #888; font-weight: bold; font-size: 0.95rem; border-radius: 8px; cursor: pointer; transition: 0.2s; text-align: center; }
+    .tab-btn.active { background: #e60000; color: #fff; box-shadow: 0 4px 12px rgba(230, 0, 0, 0.4); }
 
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
-    /* КНОПКИ УПРАВЛЕНИЯ */
-    .btn-add {
-      width: 100%;
-      padding: 12px;
-      background: #1a1a1a;
-      border: 1px solid #e60000;
-      color: #fff;
-      font-weight: bold;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-bottom: 10px;
-      font-size: 0.9rem;
-      transition: 0.2s;
-    }
+    .btn-add { width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #e60000; color: #fff; font-weight: bold; border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-size: 0.9rem; transition: 0.2s; }
     .btn-add:hover { background: #e60000; }
 
-    .btn-reminder {
-      width: 100%;
-      padding: 12px;
-      background: #ff9900;
-      color: #000;
-      border: none;
-      font-weight: bold;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-bottom: 15px;
-      font-size: 0.9rem;
-      text-transform: uppercase;
-    }
+    .btn-reminder { width: 100%; padding: 12px; background: #ff9900; color: #000; border: none; font-weight: bold; border-radius: 8px; cursor: pointer; margin-bottom: 15px; font-size: 0.9rem; text-transform: uppercase; }
 
-    .btn-clear-all {
-      width: 100%;
-      padding: 10px;
-      background: #2a0000;
-      border: 1px solid #ff3333;
-      color: #ff4d4d;
-      font-weight: bold;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-bottom: 12px;
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      transition: 0.2s;
-    }
-    .btn-clear-all:hover {
-      background: #ff3333;
-      color: #fff;
-    }
+    .btn-clear-all { width: 100%; padding: 10px; background: #2a0000; border: 1px solid #ff3333; color: #ff4d4d; font-weight: bold; border-radius: 8px; cursor: pointer; margin-bottom: 12px; font-size: 0.85rem; text-transform: uppercase; transition: 0.2s; }
+    .btn-clear-all:hover { background: #ff3333; color: #fff; }
 
-    .board-column {
-      background: #141414;
-      border: 1px solid #262626;
-      padding: 16px;
-      border-radius: 12px;
-      margin-bottom: 18px;
-    }
-    .board-title {
-      text-align: center;
-      font-size: 1.1rem;
-      font-weight: bold;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #e60000;
-      margin-bottom: 15px;
-    }
+    .board-column { background: #141414; border: 1px solid #262626; padding: 16px; border-radius: 12px; margin-bottom: 18px; }
+    .board-title { text-align: center; font-size: 1.1rem; font-weight: bold; padding-bottom: 10px; border-bottom: 2px solid #e60000; margin-bottom: 15px; }
 
-    .card {
-      background: #222;
-      border: 1px solid #333;
-      margin-top: 10px;
-      padding: 12px 15px;
-      border-radius: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-    }
+    .card { background: #222; border: 1px solid #333; margin-top: 10px; padding: 12px 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
     .card-yesterday { background: #2a0000; border-color: #ff4d4d; }
     .card-completed { background: #002411; border-color: #00e676; }
 
-    .action-btn {
-      padding: 8px 12px;
-      border: none;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 0.85rem;
-      white-space: nowrap;
-    }
+    .action-btn { padding: 8px 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; white-space: nowrap; }
     .btn-complete { background: #00e676; color: #000; }
     .btn-delete { background: #ff3333; color: #fff; }
 
-    /* ОТЧЕТЫ */
-    .report-box {
-      background: #181818;
-      border: 1px solid #333;
-      padding: 15px;
-      border-radius: 12px;
-    }
-    .report-stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-bottom: 20px;
-      background: #222;
-      padding: 15px;
-      border-radius: 10px;
-    }
+    .report-box { background: #181818; border: 1px solid #333; padding: 15px; border-radius: 12px; }
+    .report-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; background: #222; padding: 15px; border-radius: 10px; }
     .stat-item { text-align: center; }
     .stat-val { font-size: 1.1rem; font-weight: bold; color: #00e676; margin-bottom: 4px; }
     .stat-lbl { font-size: 0.7rem; color: #aaa; text-transform: uppercase; }
 
-    .report-row {
-      font-size: 0.88rem;
-      padding: 12px 0;
-      border-bottom: 1px dashed #333;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+    .report-row { font-size: 0.88rem; padding: 12px 0; border-bottom: 1px dashed #333; display: flex; justify-content: space-between; align-items: center; }
   </style>
 </head>
 <body>
@@ -174,7 +56,6 @@
   </div>
 
   <div id="queueTab" class="tab-content active">
-
     <button class="btn-reminder" onclick="sendRemindersManual()">📢 Отправить напоминание в WhatsApp (07:00)</button>
 
     <div class="board-column">
@@ -196,7 +77,6 @@
       <button class="btn-clear-all" onclick="clearAllCompleted()">🗑 Удалить ВСЕ готовые машины</button>
       <div id="listCompleted"></div>
     </div>
-
   </div>
 
   <div id="reportTab" class="tab-content">
@@ -250,9 +130,7 @@
       renderList('ECU', data.list.ecu, 'ecu');
       renderCompleted(data.completed);
       renderReport(data.dailyReport);
-    } catch (e) {
-      console.error('Ошибка загрузки данных:', e);
-    }
+    } catch (e) { console.error(e); }
   }
 
   function renderPendingBox(service, count) {
@@ -267,9 +145,7 @@
           <button class="action-btn btn-complete" onclick="markYesterdayComplete('${service}')">🚗 Готово к выдаче</button>
         </div>
       `;
-    } else {
-      container.innerHTML = '';
-    }
+    } else { container.innerHTML = ''; }
   }
 
   function renderList(elementId, list, service) {
@@ -287,7 +163,6 @@
             <div>
                 <div style="font-weight:bold; color:#fff;">№${item.pos} - ${item.brand} <span style="color:#e60000;">(${item.carNum})</span></div>
                 <div style="font-size:0.85rem; color:#aaa;">Имя: ${item.name} | Тел: ${item.phone}</div>
-                <div style="font-size:0.75rem; color:#666;">Запись от: ${item.dateAdded || 'Сегодня'}</div>
             </div>
             <button class="action-btn btn-complete" onclick="markComplete('${service}', '${item.id || item.pos}')">🚗 Готово к выдаче</button>
         </div>
@@ -311,7 +186,7 @@
                   <div>
                       <div style="font-weight:bold; color:#fff;">${item.brand} <span style="color:#00e676;">(${item.carNum})</span></div>
                       <div style="font-size:0.8rem; color:#aaa;">Работа: ${(item.workPrice || 0).toLocaleString()} ₸ | Запчасти: ${(item.partsPrice || 0).toLocaleString()} ₸</div>
-                      <div style="font-size:0.9rem; color:#00e676; font-weight:bold; margin-top:2px;">Итого к оплате: ${(item.totalPrice || 0).toLocaleString()} ₸</div>
+                      <div style="font-size:0.9rem; color:#00e676; font-weight:bold; margin-top:2px;">Итого: ${(item.totalPrice || 0).toLocaleString()} ₸</div>
                   </div>
                   <button class="action-btn btn-delete" onclick="removeCompleted('${s}', '${item.carNum}')">❌ Удалить</button>
               </div>
@@ -349,15 +224,15 @@
         `;
       });
     } else {
-      container.innerHTML = '<div style="color:#666; font-size:0.85rem; text-align:center; padding:15px;">Сегодня расчётов ещё не было</div>';
+      container.innerHTML = '<div style="color:#666; font-size:0.85rem; text-align:center; padding:15px;">Сегодня расчётов еще не было</div>';
     }
   }
 
   async function markComplete(service, id) {
-    const workPrice = prompt('Стоимость работы / услуги (₸):', '20000');
+    const workPrice = prompt('Стоимость работы (₸):', '20000');
     if (workPrice === null) return;
 
-    const partsPrice = prompt('Стоимость запчасти (₸, если нет — 0):', '5000');
+    const partsPrice = prompt('Стоимость запчасти (₸, если нет — 0):', '0');
     if (partsPrice === null) return;
 
     await fetch(`${SERVER_URL}/api/admin/complete`, {
@@ -372,7 +247,7 @@
     const workPrice = prompt('Стоимость работы для вчерашней машины (₸):', '20000');
     if (workPrice === null) return;
 
-    const partsPrice = prompt('Стоимость запчасти (₸, если нет — 0):', '5000');
+    const partsPrice = prompt('Стоимость запчасти (₸, если нет — 0):', '0');
     if (partsPrice === null) return;
 
     await fetch(`${SERVER_URL}/api/admin/complete-yesterday`, {
@@ -385,14 +260,12 @@
 
   async function sendRemindersManual() {
     if (!confirm('Отправить напоминание в WhatsApp всем записанным клиентам?')) return;
-
     await fetch(`${SERVER_URL}/api/admin/send-reminders`, { method: 'POST' });
     alert('✅ Напоминания отправлены!');
   }
 
   async function removeCompleted(service, carNum) {
     if (!confirm('Удалить из готовых?')) return;
-
     await fetch(`${SERVER_URL}/api/admin/remove-completed`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -401,7 +274,7 @@
     loadAdminData();
   }
 
-  // Очистить ВСЕ готовые авто
+  // 🗑 ОЧИСТИТЬ ВСЕ ГОТОВЫЕ
   async function clearAllCompleted() {
     if (!confirm('Вы уверены, что хотите полностью очистить список всех готовых машин?')) return;
 
@@ -410,12 +283,11 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-
       const data = await res.json();
       if (data.success) {
         loadAdminData();
       } else {
-        alert('Ошибка очистки');
+        alert('Ошибка при очистке');
       }
     } catch (err) {
       alert('Ошибка подключения к серверу');

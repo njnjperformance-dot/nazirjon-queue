@@ -10,12 +10,12 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 // ==========================================
-// НАСТРОЙКИ GREEN API
+// НАСТРОЙКИ GREEN API (WhatsApp)
 // ==========================================
 const GREEN_ID_INSTANCE = '720122704980';
 const GREEN_API_TOKEN = '9feb851977034a5b8f6f863b110881b8fdb04a9df28e40278a';
 
-// База данных в памяти
+// База данных в оперативной памяти
 let queueData = {
     pending: { injector: 0, ecu: 0 },
     list: { injector: [], ecu: [] },
@@ -28,7 +28,7 @@ let queueData = {
     }
 };
 
-// Форматирование номера телефона для Green API (7XXXXXXXXXX@c.us)
+// Форматирование номера для WhatsApp
 function formatPhoneNumber(phone) {
     if (!phone) return null;
     let cleaned = phone.toString().replace(/\D/g, '');
@@ -38,7 +38,7 @@ function formatPhoneNumber(phone) {
     return `${cleaned}@c.us`;
 }
 
-// Отправка сообщений через Green API
+// Отправка сообщений в WhatsApp
 async function sendWhatsAppNotification(phone, message) {
     if (!phone) return;
     const chatId = formatPhoneNumber(phone);
@@ -57,7 +57,7 @@ async function sendWhatsAppNotification(phone, message) {
     }
 }
 
-// Перерасчет позиций активной очереди
+// Перерасчет порядковых номеров
 function recalculatePositions(service) {
     const offset = queueData.pending[service] || 0;
     queueData.list[service].forEach((item, index) => {
@@ -66,11 +66,11 @@ function recalculatePositions(service) {
 }
 
 // ==========================================
-// АВТО-РАССЫЛКА НАПОМИНАНИЙ В 07:00 УТРА
+// УТРЕННЯЯ РАССЫЛКА НАПОМИНАНИЙ В 07:00
 // ==========================================
-// На серверах Render (UTC) 07:00 по времени Казахстана (UTC+5) соответствует 02:00 UTC
+// Для серверов Render (UTC) 07:00 времени Казахстана (UTC+5) — это 02:00 UTC
 cron.schedule('0 2 * * *', async () => {
-    console.log('⏰ [CRON] Запуск утренней рассылки напоминаний (07:00)...');
+    console.log('⏰ [CRON] Запуск утренней рассылки напоминаний...');
     await triggerMorningReminders();
 });
 
@@ -78,11 +78,11 @@ async function triggerMorningReminders() {
     const reminderMsg =
         `Доброе утро! ☀️ 
 
-Напоминаем, вы записаны в электронную очередь **Nazirjon Performance**!
+Напоминаем, вы записаны в очередь **Nazirjon Performance**!
 
-⚠️ **ВАЖНОЕ ПРАВИЛО:**
-Будьте у ворот (№80, ул. Амира Темира, 208) возле своего автомобиля **с 08:50 до 09:00**.
-Если при выходе мастера в 09:00 вас не окажется у машины — запись автоматически аннулируется!`;
+⚠️ **ОБЯЗАТЕЛЬНОЕ ПРАВИЛО:**
+Будьте у ворот (№80, ул. Амира Темира, 208) возле своего авто **с 08:50 до 09:00**.
+Если в 09:00 вас не окажется у машины — **запись автоматически аннулируется**!`;
 
     const allClients = [...queueData.list.injector, ...queueData.list.ecu];
     for (const client of allClients) {
@@ -96,12 +96,12 @@ async function triggerMorningReminders() {
 // API МАРШРУТЫ
 // ==========================================
 
-// 1. Получение данных очереди и отчета
+// Получить актуальные данные
 app.get('/api/queue', (req, res) => {
     res.json(queueData);
 });
 
-// 2. Регистрация клиента с защитой от повторов (анти-спам)
+// Запись клиента
 app.post('/api/register', async (req, res) => {
     const { name, service, brand, carNum, phone } = req.body;
 
@@ -112,19 +112,17 @@ app.post('/api/register', async (req, res) => {
     const cleanPhone = phone.toString().replace(/\D/g, '');
     const cleanCarNum = carNum.toString().toUpperCase().replace(/\s+/g, '');
 
-    // Проверка дубликатов по номеру телефона или гос. номеру
+    // Проверка дубликатов
     const allActiveClients = [...queueData.list.injector, ...queueData.list.ecu];
-
     const existingClient = allActiveClients.find(client => {
-        const clientPhone = client.phone.toString().replace(/\D/g, '');
-        const clientCar = client.carNum.toString().toUpperCase().replace(/\s+/g, '');
-        return clientPhone === cleanPhone || clientCar === cleanCarNum;
+        const cPhone = client.phone.toString().replace(/\D/g, '');
+        const cCar = client.carNum.toString().toUpperCase().replace(/\s+/g, '');
+        return cPhone === cleanPhone || cCar === cleanCarNum;
     });
 
     if (existingClient) {
-        const activeService = queueData.list.injector.includes(existingClient) ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
         return res.status(400).json({
-            error: `Вы уже состоите в очереди (${activeService}, место №${existingClient.pos}). Повторная запись запрещена!`
+            error: `Вы уже есть в очереди! (Место №${existingClient.pos}). Повторная запись запрещена.`
         });
     }
 
@@ -147,23 +145,19 @@ app.post('/api/register', async (req, res) => {
     const welcomeMsg =
         `Здравствуйте, ${name}! 👋
 
-Вы успешно записаны в очередь **Nazirjon Performance**!
+Вы записаны в электронную очередь **Nazirjon Performance**!
 
-🚗 Авто: **${brand}** (${carNum.toUpperCase()})
+🚘 Авто: **${brand}** (${carNum.toUpperCase()})
 🛠 Услуга: [${serviceName}]
-🔢 Ваш номер в очереди: **№${pos}**
+🔢 Номер в очереди: **№${pos}**
 
-⚠️ **ПРАВИЛА ПРИЁМА:**
-1. Находитесь у ворот №80 возле авто **с 08:50 до 09:00**.
-2. В 09:00 при отсутствии водителя запись аннулируется.
-
-О готовности авто сообщим сюда в чат! 🚘✨`;
+⚠️ Будьте у ворот №80 с 08:50 до 09:00. В 09:00 при отсутствии водителя запись сбрасывается.`;
 
     await sendWhatsAppNotification(phone, welcomeMsg);
     res.json({ success: true, pos, queueData });
 });
 
-// 3. Админ: Добавить вчерашний/длительный ремонт
+// Добавить вчерашний ремонт
 app.post('/api/admin/add-yesterday', (req, res) => {
     const { service } = req.body;
     if (queueData.pending[service] !== undefined) {
@@ -171,11 +165,11 @@ app.post('/api/admin/add-yesterday', (req, res) => {
         recalculatePositions(service);
         res.json({ success: true, queueData });
     } else {
-        res.status(400).json({ error: 'Неверная услуга' });
+        res.status(400).json({ error: 'Неверный тип услуги' });
     }
 });
 
-// 4. Админ: Завершить работу и отправить чек
+// Завершить ремонт и выставить чек
 app.post('/api/admin/complete', async (req, res) => {
     const { service, id, workPrice, partsPrice } = req.body;
 
@@ -196,7 +190,7 @@ app.post('/api/admin/complete', async (req, res) => {
             queueData.completed[service].push(completedCar);
             recalculatePositions(service);
 
-            // Дневной отчёт
+            // Кассовый отчет
             queueData.dailyReport.totalEarned += totalPrice;
             queueData.dailyReport.workEarned += work;
             queueData.dailyReport.partsEarned += parts;
@@ -210,13 +204,13 @@ app.post('/api/admin/complete', async (req, res) => {
                 total: totalPrice
             });
 
-            // WhatsApp сообщение клиенту
+            // Уведомление клиенту
             const serviceName = service === 'injector' ? 'INJECTOR PRO' : 'ECU PERFORMANCE';
             const readyMsg =
                 `Здравствуйте, ${completedCar.name}! 👋
 
 ✅ *Ваш автомобиль готов к выдаче!*
-🚗 **${completedCar.brand}** (${completedCar.carNum})
+🚘 **${completedCar.brand}** (${completedCar.carNum})
 🛠 Услуга: [${serviceName}]
 
 💰 **Сумма к оплате:** ${totalPrice.toLocaleString()} ₸
@@ -231,7 +225,7 @@ app.post('/api/admin/complete', async (req, res) => {
     res.status(400).json({ error: 'Машина не найдена' });
 });
 
-// 5. Админ: Завершить вчерашнюю машину
+// Завершить вчерашний ремонт
 app.post('/api/admin/complete-yesterday', (req, res) => {
     const { service, workPrice, partsPrice } = req.body;
 
@@ -272,30 +266,30 @@ app.post('/api/admin/complete-yesterday', (req, res) => {
         return res.json({ success: true, queueData });
     }
 
-    res.status(400).json({ error: 'Нет длительных машин' });
+    res.status(400).json({ error: 'Нет длительных ремонтов' });
 });
 
-// 6. Админ: Ручной запуск утренней рассылки
+// Ручной запуск утренней рассылки
 app.post('/api/admin/send-reminders', async (req, res) => {
     await triggerMorningReminders();
     res.json({ success: true });
 });
 
-// 7. Админ: Удалить конкретную машину из готовых
+// Удалить 1 машину из готовых
 app.post('/api/admin/remove-completed', (req, res) => {
     const { service, carNum } = req.body;
     if (queueData.completed[service]) {
         queueData.completed[service] = queueData.completed[service].filter(item => item.carNum !== carNum);
         return res.json({ success: true, queueData });
     }
-    res.status(400).json({ error: 'Ошибка удаления' });
+    res.status(400).json({ error: 'Ошибка' });
 });
 
-// 8. Админ: Очистить ВСЕ готовые машины одновременно
+// 🗑 МАССОВАЯ ОЧИСТКА ВСЕХ ГОТОВЫХ МАШИН
 app.post('/api/admin/clear-all-completed', (req, res) => {
     queueData.completed.injector = [];
     queueData.completed.ecu = [];
-    console.log('[Админка] Список готовых машин полностью очищен.');
+    console.log('[Админка] Все готовые авто очищены.');
     res.json({ success: true, queueData });
 });
 
